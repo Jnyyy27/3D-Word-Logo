@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>3D TECH Word</title>
+</head>
+
+<body style="background:#222; display:flex; align-items:center; justify-content:center; height:100vh; margin:0;">
+    <canvas id="gl-canvas" width="600" height="600"></canvas>
+
+    <!-- ==================== VERTEX SHADER ==================== -->
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        attribute vec4 vPosition;
+        attribute vec4 vColor;
+
+        uniform mat4 modelViewMatrix;
+        uniform mat4 projectionMatrix;
+
+        varying vec4 fColor;
+
+        void main() {
+            gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+            fColor = vColor;
+        }
+    </script>
+
+    <!-- ==================== FRAGMENT SHADER ==================== -->
+    <script id="fragment-shader" type="x-shader/x-fragment">
+        precision mediump float;
+        varying vec4 fColor;
+
+        void main() {
+            gl_FragColor = fColor;
+        }
+    </script>
+
+    <!-- Angel's WebGL Libraries -->
+    <script src="Common/webgl-utils.js"></script>
+    <script src="Common/initShaders.js"></script>
+    <script src="Common/MV.js"></script>
+
+    <!-- Main JS Code -->
+    <script src="main.js"></script>
+</body>
+
+</html>
