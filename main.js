@@ -1,186 +1,346 @@
 "use strict";
 
-var gl;
-var points = [];
-var colors = [];
+// -------------------------
+// GLOBAL VARIABLES
+// -------------------------
+let gl;
+let points = [];
+let colors = [];
 
-var modelViewMatrix, projectionMatrix;
-var modelViewMatrixLoc, projectionMatrixLoc;
+let modelViewMatrix, projectionMatrix;
+let modelViewMatrixLoc, projectionMatrixLoc;
 
-// BOX HELPER --------------------------------------------------
-// Create a cuboid at position (x,y,z) with width w, height h, depth d
-function createBox(x, y, z, w, h, d, color) {
-  let vertices = [
-    vec4(x, y, z, 1.0),
-    vec4(x + w, y, z, 1.0),
-    vec4(x + w, y + h, z, 1.0),
-    vec4(x, y + h, z, 1.0),
+let angle = 0;
+let animationSpeed = 0.7;   // controlled by slider
+let extrusionDepth = 0.3;   // controlled by slider
+let currentColor = [0.5, 0.8, 1.0, 1.0]; // default color
+let isAnimating = true;
+let letterSpacing = 0.2;    // controlled by slider
 
-    vec4(x, y, z + d, 1.0),
-    vec4(x + w, y, z + d, 1.0),
-    vec4(x + w, y + h, z + d, 1.0),
-    vec4(x, y + h, z + d, 1.0),
-  ];
+// Individual letter colors
+let colorT = [1.0, 0.2, 0.2, 1.0];  // Red
+let colorE = [0.2, 1.0, 0.2, 1.0];  // Green
+let colorC = [0.2, 0.2, 1.0, 1.0];  // Blue
+let colorH = [1.0, 1.0, 0.2, 1.0];  // Yellow
+let bgColor = [0.1, 0.1, 0.1, 1.0]; // Background color
 
-  let faces = [
-    [1, 0, 3, 1, 3, 2], // front
-    [2, 3, 7, 2, 7, 6], // right
-    [3, 0, 4, 3, 4, 7], // left
-    [0, 1, 5, 0, 5, 4], // bottom
-    [5, 6, 7, 5, 7, 4], // back
-    [6, 5, 1, 6, 1, 2], // top
-  ];
+// -------------------------
+// BOX HELPER WITH GRADIENT
+// -------------------------
+// function createBox(x, y, z, w, h, d, color) {
+//     const vertices = [
+//         vec4(x, y, z, 1.0),
+//         vec4(x + w, y, z, 1.0),
+//         vec4(x + w, y + h, z, 1.0),
+//         vec4(x, y + h, z, 1.0),
 
-  for (let f of faces) {
-    for (let i = 0; i < f.length; i++) {
-      points.push(vertices[f[i]]);
-      colors.push(color);
+//         vec4(x, y, z + d, 1.0),
+//         vec4(x + w, y, z + d, 1.0),
+//         vec4(x + w, y + h, z + d, 1.0),
+//         vec4(x, y + h, z + d, 1.0)
+//     ];
+
+//     // Create gradient variants of the base color
+//     const lighterColor = [
+//         Math.min(color[0] + 0.3, 1.0),
+//         Math.min(color[1] + 0.3, 1.0),
+//         Math.min(color[2] + 0.3, 1.0),
+//         color[3]
+//     ];
+
+//     const darkerColor = [
+//         Math.max(color[0] - 0.2, 0.0),
+//         Math.max(color[1] - 0.2, 0.0),
+//         Math.max(color[2] - 0.2, 0.0),
+//         color[3]
+//     ];
+
+//     // Each face gets a gradient from base to lighter color
+//     const faces = [
+//         [1, 0, 3, 1, 3, 2], // front
+//         [2, 3, 7, 2, 7, 6], // right
+//         [3, 0, 4, 3, 4, 7], // left
+//         [0, 1, 5, 0, 5, 4], // bottom
+//         [5, 6, 7, 5, 7, 4], // back
+//         [6, 5, 1, 6, 1, 2]  // top
+//     ];
+
+//     const faceColors = [
+//         [color, color, lighterColor, color, lighterColor, lighterColor],           // front - gradient
+//         [lighterColor, color, darkerColor, lighterColor, darkerColor, color],      // right - gradient
+//         [color, darkerColor, darkerColor, color, darkerColor, lighterColor],       // left - gradient
+//         [darkerColor, darkerColor, color, darkerColor, color, color],              // bottom - gradient
+//         [color, lighterColor, lighterColor, color, lighterColor, darkerColor],     // back - gradient
+//         [lighterColor, color, color, lighterColor, color, darkerColor]             // top - gradient
+//     ];
+
+//     for (let faceIdx = 0; faceIdx < faces.length; faceIdx++) {
+//         const f = faces[faceIdx];
+//         const fColors = faceColors[faceIdx];
+//         for (let i = 0; i < f.length; i++) {
+//             points.push(vertices[f[i]]);
+//             colors.push(fColors[i]);
+// BOX HELPER WITH VIBRANT GRADIENT
+// -------------------------
+  function createBox(x, y, z, w, h, d, color) {
+      const vertices = [
+          vec4(x, y, z, 1.0),
+          vec4(x + w, y, z, 1.0),
+          vec4(x + w, y + h, z, 1.0),
+          vec4(x, y + h, z, 1.0),
+
+          vec4(x, y, z + d, 1.0),
+          vec4(x + w, y, z + d, 1.0),
+          vec4(x + w, y + h, z + d, 1.0),
+          vec4(x, y + h, z + d, 1.0)
+      ];
+
+      // Create vibrant gradient variants with complementary hues
+      const accentColor = [
+          Math.min(color[0] + 0.4, 1.0),
+          Math.min(color[1] * 0.7 + 0.3, 1.0),
+          Math.min(color[2] + 0.5, 1.0),
+          color[3]
+      ];
+
+      const deepColor = [
+          Math.max(color[0] * 0.4, 0.0),
+          Math.max(color[1] * 0.5, 0.0),
+          Math.max(color[2] * 0.7, 0.0),
+          color[3]
+      ];
+
+      const brightColor = [
+          Math.min(color[0] * 1.3 + 0.2, 1.0),
+          Math.min(color[1] * 1.2 + 0.3, 1.0),
+          Math.min(color[2] * 0.8 + 0.4, 1.0),
+          color[3]
+      ];
+
+      // Each face gets a unique gradient pattern for visual interest
+      const faces = [
+          [1, 0, 3, 1, 3, 2], // front
+          [2, 3, 7, 2, 7, 6], // right
+          [3, 0, 4, 3, 4, 7], // left
+          [0, 1, 5, 0, 5, 4], // bottom
+          [5, 6, 7, 5, 7, 4], // back
+          [6, 5, 1, 6, 1, 2]  // top
+      ];
+
+      const faceColors = [
+          [brightColor, color, accentColor, brightColor, accentColor, brightColor],   // front - bright gradient
+          [accentColor, brightColor, color, accentColor, color, deepColor],           // right - warm transition
+          [deepColor, color, brightColor, deepColor, brightColor, accentColor],       // left - cool gradient
+          [color, deepColor, deepColor, color, color, brightColor],                   // bottom - shadow effect
+          [accentColor, brightColor, deepColor, accentColor, deepColor, color],       // back - contrasting
+          [brightColor, accentColor, color, brightColor, color, deepColor]            // top - highlight effect
+      ];
+
+      for (let faceIdx = 0; faceIdx < faces.length; faceIdx++) {
+          const f = faces[faceIdx];
+          const fColors = faceColors[faceIdx];
+          for (let i = 0; i < f.length; i++) {
+              points.push(vertices[f[i]]);
+              colors.push(fColors[i]);
+        }
     }
-  }
 }
 
-// --------------------------------------------------------------
-// BUILD 3D WORD "TECH"
-// Using boxes for each stroke of a letter
-// Coordinate system: center at 0. Letters positioned left to right
-//---------------------------------------------------------------
+// -------------------------
+// BUILD 3D TECH LETTERS
+// -------------------------
 function buildTECH() {
-  const thickness = 0.2;
-  const depth = 0.3;
-  const height = 1.0;
-  const letterWidth = 0.8;
-  const gap = 0.2;
+    points = [];
+    colors = [];
 
-  let x = -2.0; // starting X for the first letter T
+    const thickness = 0.2;
+    const height = 1.0;
+    const letterWidth = 0.8;
+    const gap = letterSpacing;  // Use the global letterSpacing variable
 
-  // ---------------- T ----------------
-  // top bar
-  let wT = 1.0; // total width of the top bar
-  let hT = 1.0; // height of the letter
-  let tT = 0.25; // thickness of strokes
-  let dT = 0.3; // depth
+    let x = -2.0;
 
-  // Top horizontal bar
-  createBox(
-    x, // left
-    hT - tT, // top bar Y position
-    0, // Z
-    wT, // full width
-    tT, // thickness
-    dT,
-    vec4(0.5, 0.8, 1.0, 1)
-  );
+    // ---- T ----
+    createBox(x, height - thickness, 0, 1.0, thickness, extrusionDepth, colorT); // top bar
+    createBox(x + 0.375, 0, 0, thickness, height - thickness, extrusionDepth, colorT); // stem
+    x += 1.0 + gap;
 
-  // Vertical stem — centered
-  createBox(
-    x + (wT / 2 - tT / 2), // centered
-    0, // from bottom
-    0,
-    tT, // stroke thickness
-    hT - tT, // height (minus top bar)
-    dT,
-    vec4(0.5, 0.8, 1.0, 1)
-  );
+    // ---- E ----
+    createBox(x, 0, 0, thickness, height, extrusionDepth, colorE);
+    createBox(x, 0.8, 0, letterWidth, thickness, extrusionDepth, colorE);
+    createBox(x, 0.4, 0, letterWidth * 0.7, thickness, extrusionDepth, colorE);
+    createBox(x, 0, 0, letterWidth, thickness, extrusionDepth, colorE);
+    x += letterWidth + gap;
 
-  // Move cursor for next letter
-  x += wT + gap;
+    // ---- C ----
+    createBox(x, 0, 0, thickness, height, extrusionDepth, colorC);
+    createBox(x, 0.8, 0, letterWidth, thickness, extrusionDepth, colorC);
+    createBox(x, 0, 0, letterWidth, thickness, extrusionDepth, colorC);
+    x += letterWidth + gap;
 
-  // ---------------- E ----------------
-  createBox(x, 0, 0, thickness, height, depth, vec4(1, 0.8, 0.4, 1)); // vertical spine
-  createBox(x, 0.8, 0, letterWidth, thickness, depth, vec4(1, 0.8, 0.4, 1)); // top
-  createBox(
-    x,
-    0.4,
-    0,
-    letterWidth * 0.7,
-    thickness,
-    depth,
-    vec4(1, 0.8, 0.4, 1)
-  ); // middle
-  createBox(x, 0, 0, letterWidth, thickness, depth, vec4(1, 0.8, 0.4, 1)); // bottom
-
-  x += letterWidth + gap;
-
-  // ---------------- C ----------------
-  createBox(x, 0, 0, thickness, height, depth, vec4(0.6, 1, 0.6, 1)); // left
-  createBox(x, 0.8, 0, letterWidth, thickness, depth, vec4(0.6, 1, 0.6, 1)); // top
-  createBox(x, 0, 0, letterWidth, thickness, depth, vec4(0.6, 1, 0.6, 1)); // bottom
-
-  x += letterWidth + gap;
-
-  // ---------------- H ----------------
-  createBox(x, 0, 0, thickness, height, depth, vec4(1, 0.4, 0.4, 1)); // left
-  createBox(
-    x + letterWidth - thickness,
-    0,
-    0,
-    thickness,
-    height,
-    depth,
-    vec4(1, 0.4, 0.4, 1)
-  ); // right
-  createBox(x, 0.4, 0, letterWidth, thickness, depth, vec4(1, 0.4, 0.4, 1)); // middle crossbar
+    // ---- H ----
+    createBox(x, 0, 0, thickness, height, extrusionDepth, colorH);
+    createBox(x + letterWidth - thickness, 0, 0, thickness, height, extrusionDepth, colorH);
+    createBox(x, 0.4, 0, letterWidth, thickness, extrusionDepth, colorH);
 }
+
+// -------------------------
+// INITIALIZE WEBGL
+// -------------------------
+let vBuffer, cBuffer;  // Global buffers
 
 window.onload = function init() {
-  var canvas = document.getElementById("gl-canvas");
-  gl = WebGLUtils.setupWebGL(canvas);
+    const canvas = document.getElementById("gl-canvas");
+    gl = WebGLUtils.setupWebGL(canvas);
 
-  gl.viewport(0, 0, canvas.width, canvas.height);
-  gl.clearColor(0.1, 0.1, 0.1, 1.0);
-  gl.enable(gl.DEPTH_TEST);
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.clearColor(0.1, 0.1, 0.1, 1.0);
+    gl.enable(gl.DEPTH_TEST);
 
-  // Build geometry
-  buildTECH();
+    buildTECH();
 
-  // Load shaders
-  var program = initShaders(gl, "vertex-shader", "fragment-shader");
-  gl.useProgram(program);
+    const program = initShaders(gl, "vertex-shader", "fragment-shader");
+    gl.useProgram(program);
 
-  // Load vertex data
-  var vBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, flatten(points), gl.STATIC_DRAW);
+    // VERTEX BUFFER
+    vBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(points), gl.STATIC_DRAW);
 
-  var vPos = gl.getAttribLocation(program, "vPosition");
-  gl.vertexAttribPointer(vPos, 4, gl.FLOAT, false, 0, 0);
-  gl.enableVertexAttribArray(vPos);
+    const vPos = gl.getAttribLocation(program, "vPosition");
+    gl.vertexAttribPointer(vPos, 4, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(vPos);
 
-  // Load color data
-  var cBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, flatten(colors), gl.STATIC_DRAW);
+    // COLOR BUFFER
+    cBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(colors), gl.STATIC_DRAW);
 
-  var vCol = gl.getAttribLocation(program, "vColor");
-  gl.vertexAttribPointer(vCol, 4, gl.FLOAT, false, 0, 0);
-  gl.enableVertexAttribArray(vCol);
+    const vCol = gl.getAttribLocation(program, "vColor");
+    gl.vertexAttribPointer(vCol, 4, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(vCol);
 
-  // Matrices
-  modelViewMatrixLoc = gl.getUniformLocation(program, "modelViewMatrix");
-  projectionMatrixLoc = gl.getUniformLocation(program, "projectionMatrix");
+    // MATRICES
+    modelViewMatrixLoc = gl.getUniformLocation(program, "modelViewMatrix");
+    projectionMatrixLoc = gl.getUniformLocation(program, "projectionMatrix");
 
-  projectionMatrix = perspective(45, canvas.width / canvas.height, 0.1, 100);
-  gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
+    projectionMatrix = perspective(45, canvas.width / canvas.height, 0.1, 100);
+    gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
 
-  render();
+    // -------------------------
+    // UI EVENT LISTENERS
+    // -------------------------
+
+    document.getElementById("depthSlider").addEventListener("input", e => {
+        extrusionDepth = parseFloat(e.target.value);
+        buildTECH();
+        gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(points), gl.STATIC_DRAW);
+        gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(colors), gl.STATIC_DRAW);
+    });
+
+    document.getElementById("speedSlider").addEventListener("input", e => {
+        animationSpeed = parseFloat(e.target.value);
+    });
+
+    document.getElementById("spacingSlider").addEventListener("input", e => {
+        letterSpacing = parseFloat(e.target.value);
+        buildTECH();
+        gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(points), gl.STATIC_DRAW);
+        gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(colors), gl.STATIC_DRAW);
+    });
+
+    document.getElementById("colorPickerT").addEventListener("input", e => {
+        const hex = e.target.value;
+        colorT = [
+            parseInt(hex.substr(1, 2), 16)/255,
+            parseInt(hex.substr(3, 2), 16)/255,
+            parseInt(hex.substr(5, 2), 16)/255,
+            1.0
+        ];
+        buildTECH();
+        gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(points), gl.STATIC_DRAW);
+        gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(colors), gl.STATIC_DRAW);
+    });
+
+    document.getElementById("colorPickerE").addEventListener("input", e => {
+        const hex = e.target.value;
+        colorE = [
+            parseInt(hex.substr(1, 2), 16)/255,
+            parseInt(hex.substr(3, 2), 16)/255,
+            parseInt(hex.substr(5, 2), 16)/255,
+            1.0
+        ];
+        buildTECH();
+        gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(points), gl.STATIC_DRAW);
+        gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(colors), gl.STATIC_DRAW);
+    });
+
+    document.getElementById("colorPickerC").addEventListener("input", e => {
+        const hex = e.target.value;
+        colorC = [
+            parseInt(hex.substr(1, 2), 16)/255,
+            parseInt(hex.substr(3, 2), 16)/255,
+            parseInt(hex.substr(5, 2), 16)/255,
+            1.0
+        ];
+        buildTECH();
+        gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(points), gl.STATIC_DRAW);
+        gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(colors), gl.STATIC_DRAW);
+    });
+
+    document.getElementById("colorPickerH").addEventListener("input", e => {
+        const hex = e.target.value;
+        colorH = [
+            parseInt(hex.substr(1, 2), 16)/255,
+            parseInt(hex.substr(3, 2), 16)/255,
+            parseInt(hex.substr(5, 2), 16)/255,
+            1.0
+        ];
+        buildTECH();
+        gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(points), gl.STATIC_DRAW);
+        gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(colors), gl.STATIC_DRAW);
+    });
+
+    document.getElementById("startBtn").addEventListener("click", () => {
+        isAnimating = true;
+    });
+
+    document.getElementById("stopBtn").addEventListener("click", () => {
+        isAnimating = false;
+    });
+
+    render();
 };
 
-var angle = 0;
-
+// -------------------------
+// RENDER LOOP
+// -------------------------
 function render() {
-  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-  angle += 0.7;
-  var eye = vec3(3, 2, 6);
-  var at = vec3(0, 0.5, 0);
-  var up = vec3(0, 1, 0);
+    if (isAnimating) angle += animationSpeed;
 
-  modelViewMatrix = lookAt(eye, at, up);
-  modelViewMatrix = mult(modelViewMatrix, rotateY(angle));
+    const eye = vec3(3, 2, 6);
+    const at = vec3(0, 0.5, 0);
+    const up = vec3(0, 1, 0);
 
-  gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
+    modelViewMatrix = lookAt(eye, at, up);
+    modelViewMatrix = mult(modelViewMatrix, rotateY(angle));
 
-  gl.drawArrays(gl.TRIANGLES, 0, points.length);
+    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
+    gl.drawArrays(gl.TRIANGLES, 0, points.length);
 
-  requestAnimFrame(render);
+    requestAnimFrame(render);
 }

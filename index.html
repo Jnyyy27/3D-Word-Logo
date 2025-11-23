@@ -4,10 +4,84 @@
 <head>
     <meta charset="utf-8">
     <title>3D TECH Word</title>
+
+    <style>
+        body {
+            background: #222;
+            margin: 0;
+            display: flex;
+            flex-direction: row;
+            color: white;
+            font-family: Arial;
+        }
+
+        #ui-panel, #control-panel {
+            width: 250px;
+            padding: 20px;
+            background: #333;
+            border-right: 2px solid #444;
+        }
+
+        #gl-canvas {
+            background: black;
+            margin-left: 20px;
+            border: 1px solid #666;
+        }
+
+        label {
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 5px;
+        }
+    </style>
 </head>
 
-<body style="background:#222; display:flex; align-items:center; justify-content:center; height:100vh; margin:0;">
-    <canvas id="gl-canvas" width="600" height="600"></canvas>
+<body>
+
+    <!-- ==================== UI PANEL ==================== -->
+    <div id="ui-panel">
+        <h3>UI Panel</h3>
+
+        <label>Letter T</label>
+        <input type="color" id="colorPickerT" value="#ff3333">
+
+        <label>Letter E</label>
+        <input type="color" id="colorPickerE" value="#33ff33">
+
+        <label>Letter C</label>
+        <input type="color" id="colorPickerC" value="#3333ff">
+
+        <label>Letter H</label>
+        <input type="color" id="colorPickerH" value="#ffff33">
+
+        <label>Background Color</label>
+        <input type="color" id="bgColorPicker" value="#000000">
+
+        <label>Letter Spacing</label>
+        <input type="range" id="spacingSlider" min="0" max="2" value="1" step="0.1">
+
+    </div>
+
+    <!-- ==================== ANIMATION PANEL ==================== -->
+    <div id="control-panel">
+        <h3>Animation Properties</h3>
+    
+        <label>Extrusion Depth</label>
+        <input type="range" id="depthSlider" min="0" max="1" value="0.1" step="0.1">
+
+        <label>Animation Speed</label>
+        <input type="range" id="speedSlider" min="0" max="5" value="0.02">
+
+        <label>Rotation Angle</label>
+        <input type="range" id="angleSlider" min="0" max="360" value="0">
+
+        <button id="startBtn" style="margin-top: 20px;">Start Animation</button>
+        <button id="stopBtn" style="margin-top: 10px;">Stop Animation</button>
+    
+    </div>
+
+    <!-- ==================== VERTEX SHADER ==================== -->
+    <canvas id="gl-canvas" width="900" height="800"></canvas>
 
     <!-- ==================== VERTEX SHADER ==================== -->
     <script id="vertex-shader" type="x-shader/x-vertex">
