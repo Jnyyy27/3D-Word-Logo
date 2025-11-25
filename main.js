@@ -32,7 +32,13 @@ let colorE = [61 / 255, 72 / 255, 230 / 255, 1.0]; // Blue
 let colorC = [60 / 255, 211 / 255, 180 / 255, 1.0]; // Cyan/Turquoise
 let colorH = [226 / 255, 235 / 255, 152 / 255, 1.0]; // Light Yellow/Green
 let bgColor = [245 / 255, 229 / 255, 229 / 255, 1.0]; // Light Pink
+let colorMode = "per-letter"; // Default color mode
 
+// Keep a copy of the original defaults so we can restore them
+const defaultColorT = colorT.slice();
+const defaultColorE = colorE.slice();
+const defaultColorC = colorC.slice();
+const defaultColorH = colorH.slice();
 // -------------------------
 // BOX HELPER - EACH FACE GETS DIFFERENT COLOR
 // -------------------------
@@ -239,6 +245,23 @@ function refreshGeometryBuffers() {
 }
 
 function setupUIEventListeners() {
+  // populate min/max labels next to sliders (sequence: min - slider - max)
+  function populateMinMax(id) {
+    try {
+      const input = document.getElementById(id);
+      const minSpan = document.getElementById(id + 'Min');
+      const maxSpan = document.getElementById(id + 'Max');
+      if (input && minSpan) minSpan.innerText = input.min;
+      if (input && maxSpan) maxSpan.innerText = input.max;
+    } catch (err) {
+      // ignore missing elements
+    }
+  }
+
+  populateMinMax('spacingSlider');
+  populateMinMax('depthSlider');
+  populateMinMax('speedSlider');
+
   document.getElementById("depthSlider").addEventListener("input", (e) => {
     extrusionDepth = parseFloat(e.target.value);
     refreshGeometryBuffers();
@@ -297,7 +320,96 @@ function setupUIEventListeners() {
     refreshGeometryBuffers();
   });
 
-  document.getElementById("bgColorPicker").addEventListener("input", (e) => {
+  document.getElementById("colorMode").addEventListener("change", (e) => {
+    const prevMode = colorMode;
+    colorMode = e.target.value;
+
+    if (colorMode === "single") {
+      applySingleColor();
+    } else if (colorMode === "rainbow") {
+      applyRainbowColors();
+    } else if (colorMode === "per-letter") {
+      // If switching back from single or rainbow, restore the original per-letter defaults
+      if (prevMode === "single" || prevMode === "rainbow") {
+        colorT = defaultColorT.slice();
+        colorE = defaultColorE.slice();
+        colorC = defaultColorC.slice();
+        colorH = defaultColorH.slice();
+        // Update the per-letter color pickers to reflect the restored defaults
+        try {
+          document.getElementById("colorPickerT").value = colorToHex(defaultColorT);
+          document.getElementById("colorPickerE").value = colorToHex(defaultColorE);
+          document.getElementById("colorPickerC").value = colorToHex(defaultColorC);
+          document.getElementById("colorPickerH").value = colorToHex(defaultColorH);
+        } catch (err) {
+          // ignore if elements not present yet
+        }
+      } else {
+        // normal per-letter: read current picker values
+        try {
+          colorT = hexToColor(document.getElementById("colorPickerT").value);
+          colorE = hexToColor(document.getElementById("colorPickerE").value);
+          colorC = hexToColor(document.getElementById("colorPickerC").value);
+          colorH = hexToColor(document.getElementById("colorPickerH").value);
+        } catch (err) {
+          // ignore if elements not present
+        }
+      }
+    }
+    refreshGeometryBuffers();
+  });
+
+  document.getElementById("singleColorPicker").addEventListener("input", (e) => {
+    if (colorMode === "single") {
+      applySingleColor();
+      console.log('singleColorPicker changed — applying single color and refreshing buffers');
+      refreshGeometryBuffers();
+    }
+    });
+
+  function applySingleColor() {
+    const hex = document.getElementById("singleColorPicker").value;
+    const col = [
+        parseInt(hex.substr(1, 2), 16) / 255,
+        parseInt(hex.substr(3, 2), 16) / 255,
+        parseInt(hex.substr(5, 2), 16) / 255,
+        1.0,
+      ];
+    colorT = col.slice();
+    colorE = col.slice();
+    colorC = col.slice();
+    colorH = col.slice();
+  }
+    function applyRainbowColors() {
+        const rainbowColors = [
+            [1.0, 0.0, 0.0, 1.0],    // Red
+            [1.0, 0.5, 0.0, 1.0],    // Orange
+            [1.0, 1.0, 0.0, 1.0],    // Yellow
+            [0.0, 1.0, 0.0, 1.0],    // Green
+        ];
+        colorT = rainbowColors[0];
+        colorE = rainbowColors[1];
+        colorC = rainbowColors[2];
+        colorH = rainbowColors[3];
+    }
+
+  // Helper: convert hex string "#rrggbb" to RGBA array [r,g,b,1]
+  function hexToColor(hex) {
+    return [
+      parseInt(hex.substr(1, 2), 16) / 255,
+      parseInt(hex.substr(3, 2), 16) / 255,
+      parseInt(hex.substr(5, 2), 16) / 255,
+      1.0,
+    ];
+  }
+
+  // Helper: convert RGBA array [r,g,b,a] to hex string "#rrggbb"
+  function colorToHex(col) {
+    const toHex = (v) => Math.round(v * 255).toString(16).padStart(2, "0");
+    return `#${toHex(col[0])}${toHex(col[1])}${toHex(col[2])}`;
+  }
+
+    document.getElementById("bgColorPicker").addEventListener("input", (e) => {
     const hex = e.target.value;
     bgColor = [
       parseInt(hex.substr(1, 2), 16) / 255,

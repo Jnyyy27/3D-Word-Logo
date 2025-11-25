@@ -89,6 +89,25 @@
             height: 25px;
         }
 
+        .range-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .range-row .min-label,
+        .range-row .max-label {
+            width: 48px;
+            text-align: center;
+            font-size: 12px;
+            color: #ddd;
+            flex: 0 0 48px;
+        }
+
+        .range-row input[type="range"] {
+            flex: 1 1 auto;
+        }
+
         button {
             width: 100%;
             padding: 12px;
@@ -168,11 +187,25 @@
                 <label>Letter H</label>
                 <input type="color" id="colorPickerH" value="#e2eb98">
 
+                <label>Color Mode</label>
+                <select id="colorMode">
+                    <option value="per-letter">Per Letter (Default)</option>
+                    <option value="single">Single Color</option>
+                    <option value="rainbow">Rainbow Cycle</option>
+                </select>
+
+                <label>Single Color</label>
+                <input type="color" id="singleColorPicker" value="#00ffcc">
+
                 <label>Background Color</label>
                 <input type="color" id="bgColorPicker" value="#f5e5e5">
 
                 <label>Letter Spacing</label>
-                <input type="range" id="spacingSlider" min="0" max="2" value="0.2" step="0.1">
+                <div class="range-row">
+                    <span class="min-label" id="spacingSliderMin"></span>
+                    <input type="range" id="spacingSlider" min="0" max="2" value="0.2" step="0.1">
+                    <span class="max-label" id="spacingSliderMax"></span>
+                </div>
             </div>
 
             <!-- ==================== ANIMATION PANEL ==================== -->
@@ -180,10 +213,18 @@
                 <h3>Animation Properties</h3>
 
                 <label>Extrusion Depth</label>
-                <input type="range" id="depthSlider" min="0" max="1" value="0.3" step="0.1">
+                <div class="range-row">
+                    <span class="min-label" id="depthSliderMin"></span>
+                    <input type="range" id="depthSlider" min="0" max="1" value="0.3" step="0.1">
+                    <span class="max-label" id="depthSliderMax"></span>
+                </div>
 
                 <label>Animation Speed</label>
-                <input type="range" id="speedSlider" min="1" max="5" value="0.5" step="0.5">
+                <div class="range-row">
+                    <span class="min-label" id="speedSliderMin"></span>
+                    <input type="range" id="speedSlider" min="1" max="5" value="0.5" step="0.5">
+                    <span class="max-label" id="speedSliderMax"></span>
+                </div>
 
                 <button id="startBtn" style="margin-top: 20px;">Start Animation</button>
                 
