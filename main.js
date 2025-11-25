@@ -26,6 +26,19 @@ let animationSpeed = defaultSpeed;
 let extrusionDepth = defaultDepth;
 let letterSpacing = defaultSpacing;
 
+let scaleValue = 1;
+const scaleLimits = { min: 0.7, max: 1.4 };
+
+let translationOffset = [0, 0, 0];
+const translationLimit = 1.2;
+const translationStepMultiplier = 0.02;
+
+let startBtn;
+let translationControl;
+let translationXSlider;
+let translationYSlider;
+let translationManualOverride = false;
+
 // Individual letter colors - more vibrant
 let colorT = [193 / 255, 58 / 255, 242 / 255, 1.0]; // Purple
 let colorE = [61 / 255, 72 / 255, 230 / 255, 1.0]; // Blue
@@ -189,6 +202,10 @@ window.onload = function init() {
 
 function getUIElement() {
   canvas = document.getElementById("gl-canvas");
+  startBtn = document.getElementById("startBtn");
+  translationControl = document.getElementById("translationControl");
+  translationXSlider = document.getElementById("translateXSlider");
+  translationYSlider = document.getElementById("translateYSlider");
 }
 
 function configWebGL() {
@@ -420,11 +437,35 @@ function setupUIEventListeners() {
     gl.clearColor(bgColor[0], bgColor[1], bgColor[2], bgColor[3]);
   });
 
-  document.getElementById("startBtn").addEventListener("click", () => {
-    isAnimating = true;
-    if (animSeq === 0) animSeq = 1;
-    disableUI();
-  });
+  if (startBtn) {
+    startBtn.addEventListener("click", () => {
+      isAnimating = !isAnimating;
+      if (isAnimating) {
+        if (animSeq === 0) animSeq = 1;
+        disableUI();
+        startBtn.innerText = "Stop Animation";
+      } else {
+        enableUI();
+        startBtn.innerText = "Start Animation";
+      }
+    });
+  }
+
+  if (translationXSlider) {
+    translationXSlider.addEventListener("input", (e) => {
+      if (animPath !== 5) return;
+      translationManualOverride = true;
+      translationOffset[0] = parseFloat(e.target.value);
+    });
+  }
+
+  if (translationYSlider) {
+    translationYSlider.addEventListener("input", (e) => {
+      if (animPath !== 5) return;
+      translationManualOverride = true;
+      translationOffset[1] = parseFloat(e.target.value);
+    });
+  }
 
   document.getElementById("resetBtn").addEventListener("click", () => {
     resetDefaults();
@@ -436,6 +477,29 @@ function setupUIEventListeners() {
     animPath = parseInt(e.target.value);
     animSeq = 1;
     theta = [0, 0, 0];
+    if (animPath !== 4) {
+      scaleValue = 1;
+    }
+    if (animPath !== 5) {
+      translationOffset = [0, 0, 0];
+      translationManualOverride = false;
+      if (translationXSlider) translationXSlider.value = 0;
+      if (translationYSlider) translationYSlider.value = 0;
+      if (translationControl) translationControl.style.display = "none";
+      if (translationXSlider) translationXSlider.disabled = true;
+      if (translationYSlider) translationYSlider.disabled = true;
+    } else {
+      translationManualOverride = true;
+      if (translationControl) translationControl.style.display = "block";
+      if (translationXSlider) {
+        translationXSlider.disabled = false;
+        translationXSlider.value = translationOffset[0];
+      }
+      if (translationYSlider) {
+        translationYSlider.disabled = false;
+        translationYSlider.value = translationOffset[1];
+      }
+    }
     refreshGeometryBuffers();
 });
 }
@@ -446,6 +510,9 @@ function resetDefaults() {
     theta = [0, 0, 0];
     animSeq = 1;
     animPath = 1;
+    scaleValue = 1;
+    translationOffset = [0, 0, 0];
+    translationManualOverride = false;
 
     animationSpeed = defaultSpeed;
     extrusionDepth = defaultDepth;
@@ -456,6 +523,19 @@ function resetDefaults() {
     document.getElementById("speedSlider").value = defaultSpeed;
     document.getElementById("depthSlider").value = defaultDepth;
     document.getElementById("spacingSlider").value = defaultSpacing;
+    if (startBtn) {
+      startBtn.innerText = "Start Animation";
+      startBtn.disabled = false;
+    }
+    if (translationControl) translationControl.style.display = "none";
+    if (translationXSlider) {
+      translationXSlider.value = 0;
+      translationXSlider.disabled = true;
+    }
+    if (translationYSlider) {
+      translationYSlider.value = 0;
+      translationYSlider.disabled = true;
+    }
 }
 
 function aniUpdate() {
@@ -601,7 +681,99 @@ function aniUpdate() {
             theta[2] += animationSpeed; // slow left/right rotation
         }
         break;
-}}
+    
+    case 4: {
+      const scaleStep = 0.005 * animationSpeed;
+      switch (animSeq) {
+        case 1:
+          scaleValue += scaleStep;
+          if (scaleValue >= scaleLimits.max) {
+            scaleValue = scaleLimits.max;
+            animSeq = 2;
+          }
+          break;
+        case 2:
+          scaleValue -= scaleStep;
+          if (scaleValue <= 1) {
+            scaleValue = 1;
+            animSeq = 3;
+          }
+          break;
+        case 3:
+          scaleValue -= scaleStep;
+          if (scaleValue <= scaleLimits.min) {
+            scaleValue = scaleLimits.min;
+            animSeq = 4;
+          }
+          break;
+        case 4:
+          scaleValue += scaleStep;
+          if (scaleValue >= 1) {
+            scaleValue = 1;
+            animSeq = 1;
+          }
+          break;
+        default:
+          animSeq = 1;
+      }
+      break;
+    }
+
+    case 5: {
+      if (translationManualOverride) {
+        break;
+      }
+      const moveStep = translationStepMultiplier * animationSpeed;
+      switch (animSeq) {
+        case 1:
+          translationOffset[0] += moveStep;
+          if (translationOffset[0] >= translationLimit) {
+            translationOffset[0] = translationLimit;
+            animSeq = 2;
+          }
+          break;
+        case 2:
+          translationOffset[0] -= moveStep;
+          if (translationOffset[0] <= 0) {
+            translationOffset[0] = 0;
+            animSeq = 3;
+          }
+          break;
+        case 3:
+          translationOffset[0] -= moveStep;
+          if (translationOffset[0] <= -translationLimit) {
+            translationOffset[0] = -translationLimit;
+            animSeq = 4;
+          }
+          break;
+        case 4:
+          translationOffset[0] += moveStep;
+          if (translationOffset[0] >= 0) {
+            translationOffset[0] = 0;
+            animSeq = 5;
+          }
+          break;
+        case 5:
+          translationOffset[1] += moveStep;
+          if (translationOffset[1] >= translationLimit * 0.7) {
+            translationOffset[1] = translationLimit * 0.7;
+            animSeq = 6;
+          }
+          break;
+        case 6:
+          translationOffset[1] -= moveStep;
+          if (translationOffset[1] <= 0) {
+            translationOffset[1] = 0;
+            animSeq = 1;
+          }
+          break;
+        default:
+          animSeq = 1;
+      }
+      break;
+    }
+  }
+}
 // -------------------------
 // RENDER LOOP
 // -------------------------
@@ -615,7 +787,6 @@ function disableUI()
   document.getElementById("colorPickerC").disabled = true;
   document.getElementById("colorPickerH").disabled = true;
   document.getElementById("bgColorPicker").disabled = true;
-  document.getElementById("startBtn").disabled = true;
   document.getElementById("animPath").disabled = true;
 }
 
@@ -629,7 +800,6 @@ function enableUI()
   document.getElementById("colorPickerC").disabled = false;
   document.getElementById("colorPickerH").disabled = false;
   document.getElementById("bgColorPicker").disabled = false;
-  document.getElementById("startBtn").disabled = false;
   document.getElementById("animPath").disabled = false;
 }
 
@@ -643,9 +813,14 @@ function render() {
   const up = vec3(0, 1, 0);
 
   modelViewMatrix = lookAt(eye, at, up);
+  modelViewMatrix = mult(
+    modelViewMatrix,
+    translate(translationOffset[0], translationOffset[1], translationOffset[2])
+  );
   modelViewMatrix = mult(modelViewMatrix, rotateX(theta[0]));
   modelViewMatrix = mult(modelViewMatrix, rotateY(theta[1]));
   modelViewMatrix = mult(modelViewMatrix, rotateZ(theta[2]));
+  modelViewMatrix = mult(modelViewMatrix, scale(scaleValue, scaleValue, scaleValue));
 
   gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
   gl.drawArrays(gl.TRIANGLES, 0, points.length);
