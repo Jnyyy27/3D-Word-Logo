@@ -9,14 +9,22 @@ let points = [];
 let colors = [];
 let normals = [];
 
+
 let modelViewMatrix, projectionMatrix;
 let modelViewMatrixLoc, projectionMatrixLoc;
 
-let angle = 0;
-let animationSpeed = 0.7;
-let extrusionDepth = 0.3;
+let theta = [0, 0, 0];
 let isAnimating = false;
-let letterSpacing = 0.2;
+let animSeq = 1;
+let animPath = 1;
+
+const defaultSpeed = 0.5;
+const defaultDepth = 0.3;
+const defaultSpacing = 0.2;
+
+let animationSpeed = defaultSpeed;
+let extrusionDepth = defaultDepth;
+let letterSpacing = defaultSpacing;
 
 // Individual letter colors - more vibrant
 let colorT = [193 / 255, 58 / 255, 242 / 255, 1.0]; // Purple
@@ -302,27 +310,230 @@ function setupUIEventListeners() {
 
   document.getElementById("startBtn").addEventListener("click", () => {
     isAnimating = true;
+    if (animSeq === 0) animSeq = 1;
+    disableUI();
   });
 
-  document.getElementById("stopBtn").addEventListener("click", () => {
-    isAnimating = false;
+  document.getElementById("resetBtn").addEventListener("click", () => {
+    resetDefaults();
+    enableUI(); 
+    refreshGeometryBuffers();
+    
   });
+  document.getElementById("animPath").addEventListener("change", (e) => {
+    animPath = parseInt(e.target.value);
+    animSeq = 1;
+    theta = [0, 0, 0];
+    refreshGeometryBuffers();
+});
 }
 
+function resetDefaults() {
+  
+    isAnimating = false;
+    theta = [0, 0, 0];
+    animSeq = 1;
+    animPath = 1;
+
+    animationSpeed = defaultSpeed;
+    extrusionDepth = defaultDepth;
+    letterSpacing = defaultSpacing;
+
+
+    document.getElementById("animPath").value = 1;
+    document.getElementById("speedSlider").value = defaultSpeed;
+    document.getElementById("depthSlider").value = defaultDepth;
+    document.getElementById("spacingSlider").value = defaultSpacing;
+}
+
+function aniUpdate() {
+  switch (animPath) {
+    case 1: // Default path
+        switch(animSeq){
+
+          case 1:
+            theta[1] += animationSpeed;
+            if (theta[1] >= 180) {
+              theta[1]= 180;
+              animSeq++;
+            }
+            break;
+
+          case 2:
+            theta[1] -= animationSpeed;
+            if (theta[1] <= 0) {
+              theta[1]= 0;
+              animSeq++;
+            }
+            break;
+
+          case 3:
+            theta[1] -= animationSpeed;
+            if (theta[1] <= -180) {
+              theta[1]= -180;
+              animSeq++;
+            }
+            break;
+
+          case 4:
+            theta[1] += animationSpeed;
+            if (theta[1] >= 0) {
+              theta[1]= 0;
+              animSeq++;
+            }
+            break;
+
+          case 5:
+            theta[1] += animationSpeed;
+            if (theta[1] >= 180) {
+              theta[1]= 180;
+              animSeq++;
+            }
+            break;
+
+          case 6:
+            theta[1] += animationSpeed; // slow left/right rotation
+        }
+        break;
+
+    case 2:
+      switch(animSeq){
+          case 1:
+            theta[0] += animationSpeed;
+            if (theta[0] >= 180) {
+              theta[0]= 180;
+              animSeq++;
+            }
+            break;
+
+          case 2:
+            theta[0] -= animationSpeed;
+            if (theta[0] <= 0) {
+              theta[0]= 0;
+              animSeq++;
+            }
+            break;
+
+          case 3:
+            theta[0] -= animationSpeed;
+            if (theta[0] <= -180) {
+              theta[0]= -180;
+              animSeq++;
+            }
+            break;
+
+          case 4:
+            theta[0] += animationSpeed;
+            if (theta[0] >= 0) {
+              theta[0]= 0;
+              animSeq++;
+            }
+            break;
+
+          case 5:
+            theta[0] += animationSpeed;
+            if (theta[0] >= 180) {
+              theta[0]= 180;
+              animSeq++;
+            }
+            break;
+
+          case 6:
+            theta[0] += animationSpeed; // slow left/right rotation
+        }
+        break;
+        
+    case 3:
+      switch(animSeq){
+          case 1:
+            theta[2] += animationSpeed;
+            if (theta[2] >= 180) {
+              theta[2]= 180;
+              animSeq++;
+            }
+            break;
+
+          case 2:
+            theta[2] -= animationSpeed;
+            if (theta[2] <= 0) {
+              theta[2]= 0;
+              animSeq++;
+            }
+            break;
+
+          case 3:
+            theta[2] -= animationSpeed;
+            if (theta[2] <= -180) {
+              theta[2]= -180;
+              animSeq++;
+            }
+            break;
+
+          case 4:
+            theta[2] += animationSpeed;
+            if (theta[2] >= 0) {
+              theta[2]= 0;
+              animSeq++;
+            }
+            break;
+
+          case 5:
+            theta[2] += animationSpeed;
+            if (theta[2] >= 180) {
+              theta[2]= 180;
+              animSeq++;
+            }
+            break;
+
+          case 6:
+            theta[2] += animationSpeed; // slow left/right rotation
+        }
+        break;
+}}
 // -------------------------
 // RENDER LOOP
 // -------------------------
-function render() {
-  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+function disableUI()
+{
+  document.getElementById("depthSlider").disabled = true;
+  document.getElementById("speedSlider").disabled = true;
+  document.getElementById("spacingSlider").disabled = true;
+  document.getElementById("colorPickerT").disabled = true;
+  document.getElementById("colorPickerE").disabled = true;
+  document.getElementById("colorPickerC").disabled = true;
+  document.getElementById("colorPickerH").disabled = true;
+  document.getElementById("bgColorPicker").disabled = true;
+  document.getElementById("startBtn").disabled = true;
+  document.getElementById("animPath").disabled = true;
+}
 
-  if (isAnimating) angle += animationSpeed;
+function enableUI()
+{
+  document.getElementById("depthSlider").disabled = false;
+  document.getElementById("speedSlider").disabled = false;
+  document.getElementById("spacingSlider").disabled = false;
+  document.getElementById("colorPickerT").disabled = false;
+  document.getElementById("colorPickerE").disabled = false;
+  document.getElementById("colorPickerC").disabled = false;
+  document.getElementById("colorPickerH").disabled = false;
+  document.getElementById("bgColorPicker").disabled = false;
+  document.getElementById("startBtn").disabled = false;
+  document.getElementById("animPath").disabled = false;
+}
+
+function render() {
+
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  if (isAnimating) aniUpdate();
 
   const eye = vec3(0, 1.5, 6);
   const at = vec3(0, 0.5, 0);
   const up = vec3(0, 1, 0);
 
   modelViewMatrix = lookAt(eye, at, up);
-  modelViewMatrix = mult(modelViewMatrix, rotateY(angle));
+  modelViewMatrix = mult(modelViewMatrix, rotateX(theta[0]));
+  modelViewMatrix = mult(modelViewMatrix, rotateY(theta[1]));
+  modelViewMatrix = mult(modelViewMatrix, rotateZ(theta[2]));
 
   gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
   gl.drawArrays(gl.TRIANGLES, 0, points.length);
