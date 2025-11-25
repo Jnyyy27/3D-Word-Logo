@@ -9,79 +9,164 @@
         body {
             background: #222;
             margin: 0;
+            padding: 0;
             display: flex;
-            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
             color: white;
             font-family: Arial;
         }
 
-        #ui-panel, #control-panel {
-            width: 250px;
+        .container {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
             padding: 20px;
-            background: #333;
-            border-right: 2px solid #444;
+            max-width: 95vw;
+            max-height: 95vh;
+        }
+
+        .canvas {
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         #gl-canvas {
             background: black;
-            margin-left: 20px;
-            border: 1px solid #666;
+            border: 2px solid #666;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        .panel-container {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+        }
+
+        #ui-panel,
+        #control-panel {
+            width: 250px;
+            padding: 20px;
+            background: #333;
+            border: 2px solid #444;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 18px;
+            border-bottom: 2px solid #555;
+            padding-bottom: 10px;
         }
 
         label {
             display: block;
             margin-top: 15px;
             margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        input[type="color"] {
+            width: 100%;
+            height: 40px;
+            border: 2px solid #555;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+            height: 25px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            font-size: 14px;
+            cursor: pointer;
+            background: #555;
+            color: white;
+            border: 2px solid #666;
+            border-radius: 5px;
+            transition: all 0.3s;
+            margin-top: 5px;
+        }
+
+        button:hover {
+            background: #666;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        button:active {
+            background: #444;
+            transform: translateY(0);
         }
     </style>
 </head>
 
 <body>
+    <div class="container">
+        <!-- Canvas for the graphic rendering -->
+        <div class="canvas">
+            <canvas id="gl-canvas" width="1100" height="620">
+                Error: your browser doesn't support the HTML5 canvas element
+            </canvas>
+        </div>
 
-    <!-- ==================== UI PANEL ==================== -->
-    <div id="ui-panel">
-        <h3>UI Panel</h3>
+        <!-- Panel container on the right side -->
+        <div class="panel-container">
+            <!-- ==================== UI PANEL ==================== -->
+            <div id="ui-panel">
+                <h3>UI Panel</h3>
 
-        <label>Letter T</label>
-        <input type="color" id="colorPickerT" value="#c13af2">
+                <label>Letter T</label>
+                <input type="color" id="colorPickerT" value="#c13af2">
 
-        <label>Letter E</label>
-        <input type="color" id="colorPickerE" value="#3d48e6">
+                <label>Letter E</label>
+                <input type="color" id="colorPickerE" value="#3d48e6">
 
-        <label>Letter C</label>
-        <input type="color" id="colorPickerC" value="#3cd3b4">
+                <label>Letter C</label>
+                <input type="color" id="colorPickerC" value="#3cd3b4">
 
-        <label>Letter H</label>
-        <input type="color" id="colorPickerH" value="#e2eb98">
+                <label>Letter H</label>
+                <input type="color" id="colorPickerH" value="#e2eb98">
 
-        <label>Background Color</label>
-        <input type="color" id="bgColorPicker" value="#f5e5e5">
+                <label>Background Color</label>
+                <input type="color" id="bgColorPicker" value="#f5e5e5">
 
-        <label>Letter Spacing</label>
-        <input type="range" id="spacingSlider" min="0" max="2" value="1" step="0.1">
+                <label>Letter Spacing</label>
+                <input type="range" id="spacingSlider" min="0" max="2" value="0.2" step="0.1">
+            </div>
 
+            <!-- ==================== ANIMATION PANEL ==================== -->
+            <div id="control-panel">
+                <h3>Animation Properties</h3>
+
+                <label>Extrusion Depth</label>
+                <input type="range" id="depthSlider" min="0" max="1" value="0.3" step="0.1">
+
+                <label>Animation Speed</label>
+                <input type="range" id="speedSlider" min="0" max="5" value="0.7" step="0.1">
+
+                <label>Rotation Angle</label>
+                <input type="range" id="angleSlider" min="0" max="360" value="0">
+
+                <button id="startBtn" style="margin-top: 20px;">Start Animation</button>
+                <button id="stopBtn">Stop Animation</button>
+            </div>
+        </div>
     </div>
-
-    <!-- ==================== ANIMATION PANEL ==================== -->
-    <div id="control-panel">
-        <h3>Animation Properties</h3>
-    
-        <label>Extrusion Depth</label>
-        <input type="range" id="depthSlider" min="0" max="1" value="0.1" step="0.1">
-
-        <label>Animation Speed</label>
-        <input type="range" id="speedSlider" min="0" max="5" value="0.02">
-
-        <label>Rotation Angle</label>
-        <input type="range" id="angleSlider" min="0" max="360" value="0">
-
-        <button id="startBtn" style="margin-top: 20px;">Start Animation</button>
-        <button id="stopBtn" style="margin-top: 10px;">Stop Animation</button>
-    
-    </div>
-
-    <!-- ==================== VERTEX SHADER ==================== -->
-    <canvas id="gl-canvas" width="900" height="800"></canvas>
 
     <!-- ==================== VERTEX SHADER ==================== -->
     <script id="vertex-shader" type="x-shader/x-vertex">
