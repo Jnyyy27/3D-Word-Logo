@@ -164,49 +164,77 @@
     <div class="container">
         <!-- Canvas for the graphic rendering -->
         <div class="canvas">
-            <canvas id="gl-canvas" width="1100" height="620">
+            <canvas id="gl-canvas" width="1280" height="720">
                 Error: your browser doesn't support the HTML5 canvas element
             </canvas>
         </div>
 
-        <!-- Panel container on the right side -->
         <div class="panel-container">
             <!-- ==================== UI PANEL ==================== -->
             <div id="ui-panel">
                 <h3>UI Panel</h3>
+        
+                <!-- Color Mode Section -->
+                <div style="background: #2a2a2a; padding: 12px; border-radius: 6px; margin-bottom: 15px;">
+                    <label style="margin-top: 0; margin-bottom: 8px; font-weight: bold; color: #ddd;">Color Mode</label>
+                    <select id="colorMode">
+                        <option value="per-letter">Per Letter (Default)</option>
+                        <option value="single">Single Color</option>
+                        <option value="rainbow">Rainbow Cycle</option>
+                    </select>
+                </div>
+        
+                <!-- Colors Section -->
+                <div style="background: #2a2a2a; padding: 12px; border-radius: 6px; margin-bottom: 15px;">
+                    <div style="font-weight: bold; color: #ddd; margin-bottom: 12px; font-size: 13px;">Colors</div>
+        
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                        <span style="flex: 1; font-size: 13px;">Letter T</span>
+                        <input type="color" id="colorPickerT" value="#c13af2"
+                            style="width: 40px; height: 40px; border: 2px solid #555; border-radius: 4px; cursor: pointer;">
+                    </div>
+        
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                        <span style="flex: 1; font-size: 13px;">Letter E</span>
+                        <input type="color" id="colorPickerE" value="#3d48e6"
+                            style="width: 40px; height: 40px; border: 2px solid #555; border-radius: 4px; cursor: pointer;">
+                    </div>
+        
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                        <span style="flex: 1; font-size: 13px;">Letter C</span>
+                        <input type="color" id="colorPickerC" value="#3cd3b4"
+                            style="width: 40px; height: 40px; border: 2px solid #555; border-radius: 4px; cursor: pointer;">
+                    </div>
+        
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                        <span style="flex: 1; font-size: 13px;">Letter H</span>
+                        <input type="color" id="colorPickerH" value="#e2eb98"
+                            style="width: 40px; height: 40px; border: 2px solid #555; border-radius: 4px; cursor: pointer;">
+                    </div>
 
-                <label>Letter T</label>
-                <input type="color" id="colorPickerT" value="#c13af2">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                        <span style="flex: 1; font-size: 13px;">Single Color</span>
+                        <input type="color" id="singleColorPicker" value="#00ffcc"
+                            style="width: 40px; height: 40px; border: 2px solid #555; border-radius: 4px; cursor: pointer;">
+                    </div>
 
-                <label>Letter E</label>
-                <input type="color" id="colorPickerE" value="#3d48e6">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="flex: 1; font-size: 13px;">Background</span>
+                        <input type="color" id="bgColorPicker" value="#f5e5e5"
+                            style="width: 40px; height: 40px; border: 2px solid #555; border-radius: 4px; cursor: pointer;">
+                    </div>
+                </div>
 
-                <label>Letter C</label>
-                <input type="color" id="colorPickerC" value="#3cd3b4">
-
-                <label>Letter H</label>
-                <input type="color" id="colorPickerH" value="#e2eb98">
-
-                <label>Color Mode</label>
-                <select id="colorMode">
-                    <option value="per-letter">Per Letter (Default)</option>
-                    <option value="single">Single Color</option>
-                    <option value="rainbow">Rainbow Cycle</option>
-                </select>
-
-                <label>Single Color</label>
-                <input type="color" id="singleColorPicker" value="#00ffcc">
-
-                <label>Background Color</label>
-                <input type="color" id="bgColorPicker" value="#f5e5e5">
-
-                <label>Letter Spacing</label>
+            <!-- Spacing Section -->
+            <div style="background: #2a2a2a; padding: 12px; border-radius: 6px;">
+                <label style="margin-top: 0; margin-bottom: 8px; font-weight: bold; color: #ddd;">Letter Spacing</label>
                 <div class="range-row">
                     <span class="min-label" id="spacingSliderMin"></span>
                     <input type="range" id="spacingSlider" min="0" max="2" value="0.2" step="0.1">
                     <span class="max-label" id="spacingSliderMax"></span>
                 </div>
             </div>
+        </div>
 
             <!-- ==================== ANIMATION PANEL ==================== -->
             <div id="control-panel">

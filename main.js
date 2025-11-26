@@ -147,13 +147,27 @@ function buildTECH() {
   const letterWidth = 0.8;
   const gap = letterSpacing;
 
-  let x = -2.0;
+  // Calculate total width: T(1.0) + gap + E(0.8) + gap + C(0.8) + gap + H(0.8)
+  const totalWidth =
+    1.0 + gap + letterWidth + gap + letterWidth + gap + letterWidth;
+
+  // Start from the left edge so the word is centered horizontally and vertically
+  let x = -totalWidth / 2;
+  const yOffset = -height / 2; // Center vertically
 
   // ---- T ----
-  createBox(x, height - thickness, 0, 1.0, thickness, extrusionDepth, colorT);
+  createBox(
+    x,
+    yOffset + height - thickness,
+    0,
+    1.0,
+    thickness,
+    extrusionDepth,
+    colorT
+  );
   createBox(
     x + 0.375,
-    0,
+    yOffset,
     0,
     thickness,
     height - thickness,
@@ -163,30 +177,62 @@ function buildTECH() {
   x += 1.0 + gap;
 
   // ---- E ----
-  createBox(x, 0, 0, thickness, height, extrusionDepth, colorE);
-  createBox(x, 0.8, 0, letterWidth, thickness, extrusionDepth, colorE);
-  createBox(x, 0.4, 0, letterWidth * 0.7, thickness, extrusionDepth, colorE);
-  createBox(x, 0, 0, letterWidth, thickness, extrusionDepth, colorE);
+  createBox(x, yOffset, 0, thickness, height, extrusionDepth, colorE);
+  createBox(
+    x,
+    yOffset + 0.8,
+    0,
+    letterWidth,
+    thickness,
+    extrusionDepth,
+    colorE
+  );
+  createBox(
+    x,
+    yOffset + 0.4,
+    0,
+    letterWidth * 0.7,
+    thickness,
+    extrusionDepth,
+    colorE
+  );
+  createBox(x, yOffset, 0, letterWidth, thickness, extrusionDepth, colorE);
   x += letterWidth + gap;
 
   // ---- C ----
-  createBox(x, 0, 0, thickness, height, extrusionDepth, colorC);
-  createBox(x, 0.8, 0, letterWidth, thickness, extrusionDepth, colorC);
-  createBox(x, 0, 0, letterWidth, thickness, extrusionDepth, colorC);
+  createBox(x, yOffset, 0, thickness, height, extrusionDepth, colorC);
+  createBox(
+    x,
+    yOffset + 0.8,
+    0,
+    letterWidth,
+    thickness,
+    extrusionDepth,
+    colorC
+  );
+  createBox(x, yOffset, 0, letterWidth, thickness, extrusionDepth, colorC);
   x += letterWidth + gap;
 
   // ---- H ----
-  createBox(x, 0, 0, thickness, height, extrusionDepth, colorH);
+  createBox(x, yOffset, 0, thickness, height, extrusionDepth, colorH);
   createBox(
     x + letterWidth - thickness,
-    0,
+    yOffset,
     0,
     thickness,
     height,
     extrusionDepth,
     colorH
   );
-  createBox(x, 0.4, 0, letterWidth, thickness, extrusionDepth, colorH);
+  createBox(
+    x,
+    yOffset + 0.4,
+    0,
+    letterWidth,
+    thickness,
+    extrusionDepth,
+    colorH
+  );
 }
 
 // -------------------------
@@ -804,23 +850,20 @@ function enableUI()
 }
 
 function render() {
-
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   if (isAnimating) aniUpdate();
 
-  const eye = vec3(0, 1.5, 6);
-  const at = vec3(0, 0.5, 0);
-  const up = vec3(0, 1, 0);
+  // Use orthographic projection instead of perspective
+  const aspect = canvas.width / canvas.height;
+  projectionMatrix = ortho(-3 * aspect, 3 * aspect, -3, 3, -10, 10);
+  gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
 
-  modelViewMatrix = lookAt(eye, at, up);
-  modelViewMatrix = mult(
-    modelViewMatrix,
-    translate(translationOffset[0], translationOffset[1], translationOffset[2])
-  );
+  // Model-view matrix with rotations
+  modelViewMatrix = mat4();
+  modelViewMatrix = mult(modelViewMatrix, translate(0, 0, 0));
   modelViewMatrix = mult(modelViewMatrix, rotateX(theta[0]));
   modelViewMatrix = mult(modelViewMatrix, rotateY(theta[1]));
   modelViewMatrix = mult(modelViewMatrix, rotateZ(theta[2]));
-  modelViewMatrix = mult(modelViewMatrix, scale(scaleValue, scaleValue, scaleValue));
 
   gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
   gl.drawArrays(gl.TRIANGLES, 0, points.length);
