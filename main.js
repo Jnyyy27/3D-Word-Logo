@@ -44,7 +44,7 @@ let colorT = [193 / 255, 58 / 255, 242 / 255, 1.0]; // Purple
 let colorE = [61 / 255, 72 / 255, 230 / 255, 1.0]; // Blue
 let colorC = [60 / 255, 211 / 255, 180 / 255, 1.0]; // Cyan/Turquoise
 let colorH = [226 / 255, 235 / 255, 152 / 255, 1.0]; // Light Yellow/Green
-let bgColor = [245 / 255, 229 / 255, 229 / 255, 1.0]; // Light Pink
+let bgColor = [0 / 255, 0 / 255, 0 / 255, 1.0]; // Black
 let colorMode = "per-letter"; // Default color mode
 
 // Keep a copy of the original defaults so we can restore them
@@ -292,9 +292,6 @@ function configWebGL() {
   // MATRICES
   modelViewMatrixLoc = gl.getUniformLocation(program, "modelViewMatrix");
   projectionMatrixLoc = gl.getUniformLocation(program, "projectionMatrix");
-
-  projectionMatrix = perspective(45, canvas.width / canvas.height, 0.1, 100);
-  gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
 
   setupUIEventListeners();
 }
@@ -855,7 +852,7 @@ function render() {
 
   // Use orthographic projection instead of perspective
   const aspect = canvas.width / canvas.height;
-  projectionMatrix = ortho(-3 * aspect, 3 * aspect, -3, 3, -10, 10);
+  projectionMatrix = ortho(-2.5 * aspect, 2.5 * aspect, -2.5, 2.5, -10, 10);
   gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
 
   // Model-view matrix with rotations
