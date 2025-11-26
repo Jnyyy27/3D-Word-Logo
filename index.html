@@ -353,12 +353,13 @@
                     <label style="margin-top: 0; margin-bottom: 8px; font-weight: 600; color: #e8e8e8; font-size: 13px;">Animation Sequence</label>
                     <select id="animPath">
                         <option value="1">Animation Sequence 1</option>
-                        <option value="2">Animation Sequence 2</option> 
+                        <option value="2">Animation Sequence 2</option>
+                        <option value="3">Playground</option>
                     </select>
                 </div>
                 
                                     <!-- ==================== Keyboard Control Info ==================== -->
-                <div class="section-box" style="background: rgba(20, 20, 40, 0.5); padding: 12px; border-radius: 8px; border: 1px solid rgba(102, 126, 234, 0.2); margin-top: 10px;">
+                <div id="defaultKeys" class="section-box" style="background: rgba(20, 20, 40, 0.5); padding: 12px; border-radius: 8px; border: 1px solid rgba(102, 126, 234, 0.2); margin-top: 10px;">
                     <label style="margin-top: 0; margin-bottom: 8px; font-weight: 600; color: #e8e8e8; font-size: 13px;">⌨️ Keyboard Control</label>
                     <p style="font-size: 12px; color: #c0c0c0; margin: 0;">
                         
@@ -368,7 +369,27 @@
                         4. <strong>Arrow Right:</strong> Decrease depth<br>
                         5. <strong>Symbol +:</strong> Increase spacing<br>
                         6. <strong>Symbol -:</strong> Decrease spacing<br>
-                        7. <strong>Space:</strong> Start animation
+                        7. <strong>Space:</strong> Start animation<br>
+                        8. <strong>R:</strong> Reset to defaults
+                    </p>
+                </div>
+
+                                <!-- ==================== Playground Keyboard Control Info ==================== -->
+                <div id="playgroundKeys" class="section-box" 
+                    style="background: rgba(20, 20, 40, 0.5); padding: 12px; border-radius: 8px; 
+                    border: 1px solid rgba(102, 126, 234, 0.2); margin-top: 10px; display:none;">
+                    <label style="margin-top: 0; margin-bottom: 8px; font-weight: 600; color: #e8e8e8; font-size: 13px;">
+                        🎮 Playground Controls
+                    </label>
+                    <p style="font-size: 12px; color: #c0c0c0; margin: 0;">
+                        1. <strong>Arrow Up:</strong>Rotate Left<br>
+                        2. <strong>Arrow Down:</strong> Rotate Right<br>
+                        3. <strong>Arrow Left:</strong> Rotate Up<br>
+                        4. <strong>Arrow Right:</strong> Rotate Down<br>
+                        5. <strong>Symbol +:</strong> Zoom in<br>
+                        6. <strong>Symbol -:</strong> Zoom out<br>
+                        7. <strong>W / A / S / D:</strong> Move object<br>
+                        8. <strong>R:</strong> Reset playground transform<br>
                     </p>
                 </div>
 

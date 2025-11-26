@@ -381,65 +381,122 @@ function setupUIEventListeners() {
   populateMinMax("speedSlider");
 
 window.addEventListener("keydown", (event) => {
-    if (isAnimating) return;
-    const key = event.key.toLowerCase();
-        switch(event.key){
-            case "ArrowUp": animationSpeed = Math.min(animationSpeed + 0.1, 5); speedSlider.value = animationSpeed; break;
+    if (animPath === 1 || animPath === 2) { // only active in animation sequence 1
+      if (isAnimating) return;
 
-            case "ArrowDown": animationSpeed = Math.max(animationSpeed - 0.1, 0); speedSlider.value = animationSpeed; break;
+      const key = event.key.toLowerCase();
+          switch(key){
+              case "arrowup": animationSpeed = Math.min(animationSpeed + 0.1, 5); speedSlider.value = animationSpeed; break;
 
-            case "ArrowRight": extrusionDepth = Math.min(extrusionDepth + 0.05, 1); depthSlider.value = extrusionDepth; break;
+              case "arrowdown": animationSpeed = Math.max(animationSpeed - 0.1, 0); speedSlider.value = animationSpeed; break;
 
-            case "ArrowLeft": extrusionDepth = Math.max(extrusionDepth - 0.05, 0.1); depthSlider.value = extrusionDepth; break;
+              case "arrowright": extrusionDepth = Math.min(extrusionDepth + 0.05, 1); depthSlider.value = extrusionDepth; break;
+              case "arrowleft": extrusionDepth = Math.max(extrusionDepth - 0.05, 0.1); depthSlider.value = extrusionDepth; break;
 
-            case "1":
-              if(colorMode !== "per-letter") break;
-              colorT = randomColor();
-              refreshGeometryBuffers();
-              try { document.getElementById("colorPickerT").value = colorToHex(colorT); } catch {}
-              break;
-
-            case "2":
-              if(colorMode !== "per-letter") break;
-              colorE = randomColor();
-              refreshGeometryBuffers();
-              try { document.getElementById("colorPickerE").value = colorToHex(colorE); } catch {}
-              break;
-
-            case "3":
-              if(colorMode !== "per-letter") break;
-              colorC = randomColor();
-              refreshGeometryBuffers();
-              try { document.getElementById("colorPickerC").value = colorToHex(colorC); } catch {}
-              break;
-
-            case "4":
-              if(colorMode !== "per-letter") break;
-              colorH = randomColor();
-              refreshGeometryBuffers();
-              try { document.getElementById("colorPickerH").value = colorToHex(colorH); } catch {}
-              break;
-
-            case " ": // spacebar → start/stop
-              isAnimating = !isAnimating;
-              if (startBtn) startBtn.innerText = isAnimating ? "Stop Animation" : "Start Animation";
-              break;
-
-            case "+": // Increase letter spacing
-                letterSpacing += 0.05;
-                letterSpacing = Math.min(letterSpacing, 1.0); // clamp max
-                document.getElementById("spacingSlider").value = letterSpacing;
+              case "1":
+                if(colorMode !== "per-letter") break;
+                colorT = randomColor();
                 refreshGeometryBuffers();
+                try { document.getElementById("colorPickerT").value = colorToHex(colorT); } catch {}
                 break;
 
-            case "-": // Decrease letter spacing
-                letterSpacing -= 0.05;
-                letterSpacing = Math.max(letterSpacing, 0.05); // clamp min
+              case "2":
+                if(colorMode !== "per-letter") break;
+                colorE = randomColor();
                 refreshGeometryBuffers();
+                try { document.getElementById("colorPickerE").value = colorToHex(colorE); } catch {}
                 break;
-                
-            }
-  });
+
+              case "3":
+                if(colorMode !== "per-letter") break;
+                colorC = randomColor();
+                refreshGeometryBuffers();
+                try { document.getElementById("colorPickerC").value = colorToHex(colorC); } catch {}
+                break;
+
+              case "4":
+                if(colorMode !== "per-letter") break;
+                colorH = randomColor();
+                refreshGeometryBuffers();
+                try { document.getElementById("colorPickerH").value = colorToHex(colorH); } catch {}
+                break;
+
+              case " ": // spacebar → start/stop
+                isAnimating = !isAnimating;
+                if (startBtn) startBtn.innerText = isAnimating ? "Stop Animation" : "Start Animation";
+                break;
+
+              case "+": // Increase letter spacing
+                  letterSpacing += 0.05;
+                  letterSpacing = Math.min(letterSpacing, 1.0); // clamp max
+                  document.getElementById("spacingSlider").value = letterSpacing;
+                  refreshGeometryBuffers();
+                  break;
+
+              case "-": // Decrease letter spacing
+                  letterSpacing -= 0.05;
+                  letterSpacing = Math.max(letterSpacing, 0.05); // clamp min
+                  refreshGeometryBuffers();
+                  break;
+              case "r":
+                  resetDefaults();
+                  refreshGeometryBuffers();
+                  break;
+              }}
+
+    else if (animPath == 3) {  
+      // Playground mode - no animation sequences
+      const key = event.key.toLowerCase();
+      switch(key){
+
+        case "arrowleft":
+          theta[1] -= 5; // rotate Y left
+          break;
+
+        case "arrowright":
+          theta[1] += 5; // rotate Y right
+          break;
+
+        case "arrowup":
+          theta[0] -= 5; // rotate X up
+          break;
+
+        case "arrowdown":
+          theta[0] += 5; // rotate X down
+          break;
+
+        case "a":
+          translationOffset[0] -= 0.1;
+          break;
+
+        case "d":
+          translationOffset[0] += 0.1;
+          break;
+
+        case "w":
+          translationOffset[1] += 0.1;
+          break;
+
+        case "s":
+          translationOffset[1] -= 0.1;
+          break;
+
+        case "+":
+        case "=":
+          scaleValue *= 1.05; // zoom in
+          break;
+
+        case "-":
+          scaleValue *= 0.95; // zoom out
+          break;
+
+        case "r":
+          resetDefaults();
+          refreshGeometryBuffers();
+          break;
+      }
+        }
+      });
 
 
   document.getElementById("depthSlider").addEventListener("input", (e) => {
@@ -499,6 +556,22 @@ window.addEventListener("keydown", (event) => {
     ];
     refreshGeometryBuffers();
   });
+
+const animPathSelect = document.getElementById("animPath");
+const defaultKeys = document.getElementById("defaultKeys");
+const playgroundKeys = document.getElementById("playgroundKeys");
+
+animPathSelect.addEventListener("change", () => {
+    animPath = parseInt(animPathSelect.value, 10);
+
+    if (animPath === 3) {
+        defaultKeys.style.display = "none";
+        playgroundKeys.style.display = "block";
+    } else {
+        playgroundKeys.style.display = "none";
+        defaultKeys.style.display = "block";
+    }
+});
 
   document.getElementById("colorMode").addEventListener("change", (e) => {
     const prevMode = colorMode;
@@ -672,7 +745,8 @@ function resetDefaults() {
   //   document.getElementById("colorPickerC").value = colorToHex(defaultColorC);
   //   document.getElementById("colorPickerH").value = colorToHex(defaultColorH);
   // } catch (err) {}
-
+        
+    refreshGeometryBuffers();
   if (startBtn) {
     startBtn.innerText = "Start Animation";
     startBtn.disabled = false;
@@ -685,7 +759,7 @@ function resetDefaults() {
 // -------------------------
 function aniUpdate() {
   // Only animation sequence 1 is active now
-  if (animPath !== 1) return;
+  if (animPath == 1 || animPath == 3) {
 
   switch (animSeq) {
     // 1–4: rotation around Y axis
@@ -832,6 +906,10 @@ function aniUpdate() {
 
       break;
     }
+  }}
+
+  else if (animPath == 2) {
+    
   }
 
   stageFrameCount++;
@@ -850,6 +928,8 @@ function disableUI() {
   document.getElementById("colorPickerH").disabled = true;
   document.getElementById("bgColorPicker").disabled = true;
   document.getElementById("animPath").disabled = true;
+  document.getElementById("singleColorPicker").disabled = true;
+  document.getElementById("colorMode").disabled = true;
 }
 
 function enableUI() {
@@ -862,6 +942,8 @@ function enableUI() {
   document.getElementById("colorPickerH").disabled = false;
   document.getElementById("bgColorPicker").disabled = false;
   document.getElementById("animPath").disabled = false;
+  document.getElementById("singleColorPicker").disabled = false;
+  document.getElementById("colorMode").disabled = false;
 }
 
 function render() {
