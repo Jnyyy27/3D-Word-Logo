@@ -58,6 +58,8 @@ const defaultColorT = colorT.slice();
 const defaultColorE = colorE.slice();
 const defaultColorC = colorC.slice();
 const defaultColorH = colorH.slice();
+// Remember the default single-color picker hex so Reset can restore it
+let defaultSingleColorHex = null;
 
 // Word geometry helpers
 const TECH_HEIGHT = 1.0; // "height = 1.0" in buildTECH()
@@ -381,6 +383,12 @@ function setupUIEventListeners() {
   populateMinMax("depthSlider");
   populateMinMax("speedSlider");
 
+  // Capture the default single color hex so Reset can restore it later
+  try {
+    const single = document.getElementById("singleColorPicker");
+    if (single) defaultSingleColorHex = single.value;
+  } catch (err) {}
+
 window.addEventListener("keydown", (event) => {
     if (animPath === 1 || animPath === 2) { // only active in animation sequence 1
       if (isAnimating) return;
@@ -652,7 +660,29 @@ animPathSelect.addEventListener("change", () => {
     colorE = rainbowColors[1];
     colorC = rainbowColors[2];
     colorH = rainbowColors[3];
+
+    updateColorPickers([colorT, colorE, colorC, colorH]);
   }
+
+  function updateColorPickers(colors) {
+    const pickers = [
+      document.getElementById("colorPickerT"),
+      document.getElementById("colorPickerE"),
+      document.getElementById("colorPickerC"),
+      document.getElementById("colorPickerH"),
+    ];
+
+    const toHex = (v) =>
+    Math.round(v * 255).toString(16).padStart(2, "0");
+  const rgbToHex = (col) => `#${toHex(col[0])}${toHex(col[1])}${toHex(col[2])}`;
+
+  pickers.forEach((picker, i) => {
+    if (picker && colors[i]) {
+      picker.value = rgbToHex(colors[i]);
+      picker.dispatchEvent(new Event("input"));
+    }
+  });
+}
 
   function hexToColor(hex) {
     return [
@@ -736,20 +766,59 @@ function resetDefaults() {
   document.getElementById("depthSlider").value = defaultDepth;
   document.getElementById("spacingSlider").value = defaultSpacing;
 
-  //   // Reset colors to defaults
-  // colorT = defaultColorT.slice();
-  // colorE = defaultColorE.slice();
-  // colorC = defaultColorC.slice();
-  // colorH = defaultColorH.slice();
+  if (colorMode === "rainbow") {
+        colorT = rainbowColors.slice();
+        colorE = rainbowColors.slice();
+        colorC = rainbowColors.slice();
+        colorH = rainbowColors.slice();
+  }else{ // Restore per-letter colors to defaults and update pickers (do not change color mode)
+        colorT = defaultColorT.slice();
+        colorE = defaultColorE.slice();
+        colorC = defaultColorC.slice();
+        colorH = defaultColorH.slice();
 
-  // try {
-  //   document.getElementById("colorPickerT").value = colorToHex(defaultColorT);
-  //   document.getElementById("colorPickerE").value = colorToHex(defaultColorE);
-  //   document.getElementById("colorPickerC").value = colorToHex(defaultColorC);
-  //   document.getElementById("colorPickerH").value = colorToHex(defaultColorH);
-  // } catch (err) {}
-        
-    refreshGeometryBuffers();
+        try {
+          const tPicker = document.getElementById("colorPickerT");
+          const ePicker = document.getElementById("colorPickerE");
+          const cPicker = document.getElementById("colorPickerC");
+          const hPicker = document.getElementById("colorPickerH");
+
+          // Convert RGB array(0-1) to hex string so that it is working
+          const toHex = (v) =>
+            Math.round(v * 255)
+              .toString(16)
+              .padStart(2, "0");
+          const rgbToHex = (col) => `#${toHex(col[0])}${toHex(col[1])}${toHex(col[2])}`;
+
+          if (tPicker) {
+            tPicker.value = rgbToHex(defaultColorT);
+            tPicker.dispatchEvent(new Event("input"));
+          }
+          if (ePicker) {
+            ePicker.value = rgbToHex(defaultColorE);
+            ePicker.dispatchEvent(new Event("input"));
+          }
+          if (cPicker) {
+            cPicker.value = rgbToHex(defaultColorC);
+            cPicker.dispatchEvent(new Event("input"));
+          }
+          if (hPicker) {
+            hPicker.value = rgbToHex(defaultColorH);
+            hPicker.dispatchEvent(new Event("input"));
+          }
+        } catch (err) {}
+      }
+
+  // Restore single color picker to its initial value after press reset
+  try {
+    const single = document.getElementById("singleColorPicker");
+    if (single && defaultSingleColorHex) {
+      single.value = defaultSingleColorHex;
+      single.dispatchEvent(new Event("input"));
+    }
+  } catch (err) {}
+
+  refreshGeometryBuffers();
   if (startBtn) {
     startBtn.innerText = "Start Animation";
     startBtn.disabled = false;
