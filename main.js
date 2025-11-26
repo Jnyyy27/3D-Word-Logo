@@ -359,6 +359,9 @@ function refreshGeometryBuffers() {
   gl.bufferData(gl.ARRAY_BUFFER, flatten(colors), gl.STATIC_DRAW);
 }
 
+function randomColor() {
+  return [Math.random(), Math.random(), Math.random(), 1.0];
+}
 // -------------------------
 // UI SETUP
 // -------------------------
@@ -376,6 +379,68 @@ function setupUIEventListeners() {
   populateMinMax("spacingSlider");
   populateMinMax("depthSlider");
   populateMinMax("speedSlider");
+
+window.addEventListener("keydown", (event) => {
+    if (isAnimating) return;
+    const key = event.key.toLowerCase();
+        switch(event.key){
+            case "ArrowUp": animationSpeed = Math.min(animationSpeed + 0.1, 5); speedSlider.value = animationSpeed; break;
+
+            case "ArrowDown": animationSpeed = Math.max(animationSpeed - 0.1, 0); speedSlider.value = animationSpeed; break;
+
+            case "ArrowRight": extrusionDepth = Math.min(extrusionDepth + 0.05, 1); depthSlider.value = extrusionDepth; break;
+
+            case "ArrowLeft": extrusionDepth = Math.max(extrusionDepth - 0.05, 0.1); depthSlider.value = extrusionDepth; break;
+
+            case "1":
+              if(colorMode !== "per-letter") break;
+              colorT = randomColor();
+              refreshGeometryBuffers();
+              try { document.getElementById("colorPickerT").value = colorToHex(colorT); } catch {}
+              break;
+
+            case "2":
+              if(colorMode !== "per-letter") break;
+              colorE = randomColor();
+              refreshGeometryBuffers();
+              try { document.getElementById("colorPickerE").value = colorToHex(colorE); } catch {}
+              break;
+
+            case "3":
+              if(colorMode !== "per-letter") break;
+              colorC = randomColor();
+              refreshGeometryBuffers();
+              try { document.getElementById("colorPickerC").value = colorToHex(colorC); } catch {}
+              break;
+
+            case "4":
+              if(colorMode !== "per-letter") break;
+              colorH = randomColor();
+              refreshGeometryBuffers();
+              try { document.getElementById("colorPickerH").value = colorToHex(colorH); } catch {}
+              break;
+
+            case " ": // spacebar → start/stop
+              isAnimating = !isAnimating;
+              if (startBtn) startBtn.innerText = isAnimating ? "Stop Animation" : "Start Animation";
+              break;
+
+            case "+": // Increase letter spacing
+                letterSpacing += 0.05;
+                letterSpacing = Math.min(letterSpacing, 1.0); // clamp max
+                document.getElementById("spacingSlider").value = letterSpacing;
+                refreshGeometryBuffers();
+                break;
+
+            case "-": // Decrease letter spacing
+                letterSpacing -= 0.05;
+                letterSpacing = Math.max(letterSpacing, 0.05); // clamp min
+                refreshGeometryBuffers();
+                break;
+                
+            }
+  });
+
 
   document.getElementById("depthSlider").addEventListener("input", (e) => {
     extrusionDepth = parseFloat(e.target.value);
@@ -594,6 +659,20 @@ function resetDefaults() {
   document.getElementById("speedSlider").value = defaultSpeed;
   document.getElementById("depthSlider").value = defaultDepth;
   document.getElementById("spacingSlider").value = defaultSpacing;
+
+  //   // Reset colors to defaults
+  // colorT = defaultColorT.slice();
+  // colorE = defaultColorE.slice();
+  // colorC = defaultColorC.slice();
+  // colorH = defaultColorH.slice();
+
+  // try {
+  //   document.getElementById("colorPickerT").value = colorToHex(defaultColorT);
+  //   document.getElementById("colorPickerE").value = colorToHex(defaultColorE);
+  //   document.getElementById("colorPickerC").value = colorToHex(defaultColorC);
+  //   document.getElementById("colorPickerH").value = colorToHex(defaultColorH);
+  // } catch (err) {}
+
   if (startBtn) {
     startBtn.innerText = "Start Animation";
     startBtn.disabled = false;
