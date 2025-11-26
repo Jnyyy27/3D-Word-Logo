@@ -17,14 +17,9 @@ let theta = [0, 0, 0]; // [x, y, z]
 
 // animation control
 let isAnimating = false;
-let animPath = 1; // 1 = master animation, 2 & 3 do nothing (reserved)
-
-// master stage 1..7 inside animation sequence 1
-let masterStage = 1;       // 1..7
-let stageFrameCount = 0;   // counts frames in current stage
-let scaleDir = 1;          // used in pulsing scale
-const stageOrderSeq1 = [1, 2, 3, 4, 5, 6, 7];
-const stageOrderSeq2 = [7, 6, 5, 4, 3, 2, 1];
+let animPath = 1;   // 1 = animation, 2 & 3 reserved (do nothing)
+let animSeq = 1;    // 1..7 inside animation sequence 1
+let stageFrameCount = 0; // counts frames in current stage
 
 const defaultSpeed = 0.5;
 const defaultDepth = 0.3;
@@ -110,18 +105,6 @@ function scalem(x, y, z) {
   result[1][1] = y;
   result[2][2] = z;
   return result;
-}
-
-// Restore translation state to the centered default
-function resetTranslationToCenter() {
-  translationOffset = [0, 0, 0];
-  translationVelocity = [0.02, 0.015];
-}
-
-function getCurrentStageNumber() {
-  const order = animPath === 2 ? stageOrderSeq2 : stageOrderSeq1;
-  const index = Math.max(0, Math.min(masterStage - 1, order.length - 1));
-  return order[index];
 }
 
 // -------------------------
@@ -382,18 +365,10 @@ function refreshGeometryBuffers() {
   gl.bufferData(gl.ARRAY_BUFFER, flatten(colors), gl.STATIC_DRAW);
 }
 
-// helper for master stage transitions
-function advanceStage() {
-  masterStage++;
-  if (masterStage > 7) {
-    masterStage = 1;
-    resetTranslationToCenter();
-  }
-  stageFrameCount = 0;
-}
-
+// -------------------------
+// UI SETUP
+// -------------------------
 function setupUIEventListeners() {
-  // populate min/max labels next to sliders (sequence: min - slider - max)
   function populateMinMax(id) {
     try {
       const input = document.getElementById(id);
@@ -401,9 +376,7 @@ function setupUIEventListeners() {
       const maxSpan = document.getElementById(id + "Max");
       if (input && minSpan) minSpan.innerText = input.min;
       if (input && maxSpan) maxSpan.innerText = input.max;
-    } catch (err) {
-      // ignore missing elements
-    }
+    } catch (err) {}
   }
 
   populateMinMax("spacingSlider");
@@ -477,13 +450,11 @@ function setupUIEventListeners() {
     } else if (colorMode === "rainbow") {
       applyRainbowColors();
     } else if (colorMode === "per-letter") {
-      // If switching back from single or rainbow, restore the original per-letter defaults
       if (prevMode === "single" || prevMode === "rainbow") {
         colorT = defaultColorT.slice();
         colorE = defaultColorE.slice();
         colorC = defaultColorC.slice();
         colorH = defaultColorH.slice();
-        // Update the per-letter color pickers to reflect the restored defaults
         try {
           document.getElementById("colorPickerT").value =
             colorToHex(defaultColorT);
@@ -493,11 +464,8 @@ function setupUIEventListeners() {
             colorToHex(defaultColorC);
           document.getElementById("colorPickerH").value =
             colorToHex(defaultColorH);
-        } catch (err) {
-          // ignore if elements not present yet
-        }
+        } catch (err) {}
       } else {
-        // normal per-letter: read current picker values
         try {
           colorT = hexToColor(
             document.getElementById("colorPickerT").value
@@ -511,9 +479,7 @@ function setupUIEventListeners() {
           colorH = hexToColor(
             document.getElementById("colorPickerH").value
           );
-        } catch (err) {
-          // ignore if elements not present
-        }
+        } catch (err) {}
       }
     }
     refreshGeometryBuffers();
@@ -555,7 +521,6 @@ function setupUIEventListeners() {
     colorH = rainbowColors[3];
   }
 
-  // Helper: convert hex string "#rrggbb" to RGBA array [r,g,b,1]
   function hexToColor(hex) {
     return [
       parseInt(hex.substr(1, 2), 16) / 255,
@@ -565,7 +530,6 @@ function setupUIEventListeners() {
     ];
   }
 
-  // Helper: convert RGBA array [r,g,b,a] to hex string "#rrggbb"
   function colorToHex(col) {
     const toHex = (v) =>
       Math.round(v * 255)
@@ -612,7 +576,7 @@ function setupUIEventListeners() {
     scaleValue = 1;
     translationOffset = [0, 0, 0];
     translationVelocity = [0.02, 0.015];
-    masterStage = 1;
+    animSeq = 1;
     stageFrameCount = 0;
   });
 }
@@ -621,9 +585,8 @@ function resetDefaults() {
   isAnimating = false;
   theta = [0, 0, 0];
   animPath = 1;
-  masterStage = 1;
+  animSeq = 1;
   stageFrameCount = 0;
-  scaleDir = 1;
 
   scaleValue = 1;
   translationOffset = [0, 0, 0];
@@ -643,87 +606,50 @@ function resetDefaults() {
   }
 }
 
-// -------------------------
-// MASTER ANIMATION (Sequence 1 & 2)
-// case 1..7 in here, order depends on sequence
-// -------------------------
 function aniUpdate() {
-  if (animPath === 3) {
-    return; // sequence 3 reserved
-  }
+  // Only animation sequence 1 is active now
+  if (animPath !== 1) return;
 
-  const currentStage = getCurrentStageNumber();
-  const rotationDir = animPath === 2 ? -1 : 1;
-
-  switch (currentStage) {
-    // 1) Rotate Y (full 360)
-    case 1: {
-      if (stageFrameCount === 0) {
-        theta = [0, 0, 0];
+  switch (animSeq) {
+    case 1:
+      theta[1] += animationSpeed;
+      if (theta[1] >= 180) {
+        theta[1] = 180;
+        animSeq++;
+        if (animSeq > 7) animSeq = 1;
+        stageFrameCount = 0;
       }
-      theta[1] += rotationDir * animationSpeed;
-      const completed =
-        (rotationDir > 0 && theta[1] >= 360) ||
-        (rotationDir < 0 && theta[1] <= -360);
-      if (completed) {
+      break;
+
+    case 2:
+      theta[1] -= animationSpeed;
+      if (theta[1] <= 0) {
         theta[1] = 0;
-        advanceStage();
+        animSeq++;
+        if (animSeq > 7) animSeq = 1;
+        stageFrameCount = 0;
       }
       break;
-    }
 
-    // 2) Rotate X (full 360)
-    case 2: {
-      if (stageFrameCount === 0) {
-        theta = [0, 0, 0];
-      }
-      theta[0] += rotationDir * animationSpeed;
-      const completed =
-        (rotationDir > 0 && theta[0] >= 360) ||
-        (rotationDir < 0 && theta[0] <= -360);
-      if (completed) {
-        theta[0] = 0;
-        advanceStage();
+    case 3:
+      theta[1] -= animationSpeed;
+      if (theta[1] <= -180) {
+        theta[1] = -180;
+        animSeq++;
+        if (animSeq > 7) animSeq = 1;
+        stageFrameCount = 0;
       }
       break;
-    }
 
-    // 3) Rotate Z (full 360)
-    case 3: {
-      if (stageFrameCount === 0) {
-        theta = [0, 0, 0];
-      }
-      theta[2] += rotationDir * animationSpeed;
-      const completed =
-        (rotationDir > 0 && theta[2] >= 360) ||
-        (rotationDir < 0 && theta[2] <= -360);
-      if (completed) {
-        theta[2] = 0;
-        advanceStage();
+    case 4:
+      theta[1] += animationSpeed;
+      if (theta[1] >= 0) {
+        theta[1] = 0;
+        animSeq++;
+        if (animSeq > 7) animSeq = 1;
+        stageFrameCount = 0;
       }
       break;
-    }
-
-    // 4) Pulsing scale: 1 -> max -> min (one pulse)
-    case 4: {
-      const step = 0.01 * animationSpeed;
-      if (stageFrameCount === 0) {
-        scaleValue = 1.0;
-        scaleDir = 1;
-      }
-
-      scaleValue += scaleDir * step;
-
-      if (scaleDir > 0 && scaleValue >= scaleLimits.max) {
-        scaleValue = scaleLimits.max;
-        scaleDir = -1;
-      } else if (scaleDir < 0 && scaleValue <= scaleLimits.min) {
-        scaleValue = scaleLimits.min;
-        // end of pulse
-        advanceStage();
-      }
-      break;
-    }
 
     // 5) Enlarge scaling until hitting border (no outside)
     case 5: {
@@ -731,7 +657,6 @@ function aniUpdate() {
       const maxScale = getMaxScaleToFit();
 
       if (stageFrameCount === 0) {
-        // ensure we start from centered baseline before growing
         translationOffset = [0, 0, 0];
         scaleValue = Math.max(1.0, scaleValue);
       }
@@ -740,12 +665,15 @@ function aniUpdate() {
         scaleValue += step;
         if (scaleValue >= maxScale) {
           scaleValue = maxScale;
-          advanceStage();
+          animSeq++;
+          if (animSeq > 7) animSeq = 1;
+          stageFrameCount = 0;
         }
       } else {
-        // already at or beyond max
         scaleValue = maxScale;
-        advanceStage();
+        animSeq++;
+        if (animSeq > 7) animSeq = 1;
+        stageFrameCount = 0;
       }
       break;
     }
@@ -753,7 +681,6 @@ function aniUpdate() {
     // 6) Diminish scaling back to original size (center)
     case 6: {
       const step = 0.01 * animationSpeed;
-      // gently bring translation back to center each frame
       translationOffset[0] *= 0.9;
       translationOffset[1] *= 0.9;
 
@@ -761,16 +688,20 @@ function aniUpdate() {
         scaleValue -= step;
         if (scaleValue <= 1.0) {
           scaleValue = 1.0;
-          advanceStage();
+          animSeq++;
+          if (animSeq > 7) animSeq = 1;
+          stageFrameCount = 0;
         }
       } else {
         scaleValue = 1.0;
-        advanceStage();
+        animSeq++;
+        if (animSeq > 7) animSeq = 1;
+        stageFrameCount = 0;
       }
       break;
     }
 
-    // 7) Move around within screen bounds
+    // 7) Move around within screen bounds (bouncing)
     case 7: {
       if (stageFrameCount === 0) {
         scaleValue = 1.0;
@@ -811,8 +742,10 @@ function aniUpdate() {
       // let translation stage run for some time, then loop back to stage 1
       const MAX_FRAMES = 600; // ~10 seconds at 60fps
       if (stageFrameCount > MAX_FRAMES) {
-        resetTranslationToCenter();
-        advanceStage(); // goes to 1 (via advanceStage logic)
+        translationOffset = [0, 0, 0];
+        translationVelocity = [0.02, 0.015];
+        animSeq = 1;
+        stageFrameCount = 0;
       }
 
       break;
