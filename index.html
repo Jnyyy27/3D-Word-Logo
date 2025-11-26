@@ -16,7 +16,7 @@
             height: 100vh;
             overflow: hidden;
             color: white;
-            font-family: Arial;
+            font-family: Arial, sans-serif;
         }
 
         .container {
@@ -131,6 +131,7 @@
             background: #444;
             transform: translateY(0);
         }
+
         select {
             width: 100%;
             padding: 10px;
@@ -156,7 +157,6 @@
             border-color: #aaa;
             box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
         }
-
     </style>
 </head>
 
@@ -173,7 +173,7 @@
             <!-- ==================== UI PANEL ==================== -->
             <div id="ui-panel">
                 <h3>UI Panel</h3>
-        
+
                 <!-- Color Mode Section -->
                 <div style="background: #2a2a2a; padding: 12px; border-radius: 6px; margin-bottom: 15px;">
                     <label style="margin-top: 0; margin-bottom: 8px; font-weight: bold; color: #ddd;">Color Mode</label>
@@ -183,29 +183,29 @@
                         <option value="rainbow">Rainbow Cycle</option>
                     </select>
                 </div>
-        
+
                 <!-- Colors Section -->
                 <div style="background: #2a2a2a; padding: 12px; border-radius: 6px; margin-bottom: 15px;">
                     <div style="font-weight: bold; color: #ddd; margin-bottom: 12px; font-size: 13px;">Colors</div>
-        
+
                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
                         <span style="flex: 1; font-size: 13px;">Letter T</span>
                         <input type="color" id="colorPickerT" value="#c13af2"
                             style="width: 40px; height: 40px; border: 2px solid #555; border-radius: 4px; cursor: pointer;">
                     </div>
-        
+
                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
                         <span style="flex: 1; font-size: 13px;">Letter E</span>
                         <input type="color" id="colorPickerE" value="#3d48e6"
                             style="width: 40px; height: 40px; border: 2px solid #555; border-radius: 4px; cursor: pointer;">
                     </div>
-        
+
                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
                         <span style="flex: 1; font-size: 13px;">Letter C</span>
                         <input type="color" id="colorPickerC" value="#3cd3b4"
                             style="width: 40px; height: 40px; border: 2px solid #555; border-radius: 4px; cursor: pointer;">
                     </div>
-        
+
                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
                         <span style="flex: 1; font-size: 13px;">Letter H</span>
                         <input type="color" id="colorPickerH" value="#e2eb98"
@@ -225,16 +225,16 @@
                     </div>
                 </div>
 
-            <!-- Spacing Section -->
-            <div style="background: #2a2a2a; padding: 12px; border-radius: 6px;">
-                <label style="margin-top: 0; margin-bottom: 8px; font-weight: bold; color: #ddd;">Letter Spacing</label>
-                <div class="range-row">
-                    <span class="min-label" id="spacingSliderMin"></span>
-                    <input type="range" id="spacingSlider" min="0" max="2" value="0.2" step="0.1">
-                    <span class="max-label" id="spacingSliderMax"></span>
+                <!-- Spacing Section -->
+                <div style="background: #2a2a2a; padding: 12px; border-radius: 6px;">
+                    <label style="margin-top: 0; margin-bottom: 8px; font-weight: bold; color: #ddd;">Letter Spacing</label>
+                    <div class="range-row">
+                        <span class="min-label" id="spacingSliderMin"></span>
+                        <input type="range" id="spacingSlider" min="0" max="2" value="0.2" step="0.1">
+                        <span class="max-label" id="spacingSliderMax"></span>
+                    </div>
                 </div>
             </div>
-        </div>
 
             <!-- ==================== ANIMATION PANEL ==================== -->
             <div id="control-panel">
@@ -250,7 +250,7 @@
                 <label>Animation Speed</label>
                 <div class="range-row">
                     <span class="min-label" id="speedSliderMin"></span>
-                    <input type="range" id="speedSlider" min="1" max="5" value="0.5" step="0.5">
+                    <input type="range" id="speedSlider" min="0.1" max="5" value="0.5" step="0.1">
                     <span class="max-label" id="speedSliderMax"></span>
                 </div>
 
@@ -258,28 +258,10 @@
 
                 <button id="resetBtn">Reset Animation</button>
 
-                <div id="translationControl" style="display:none; margin-top: 15px;">
-                    <label>Translate X</label>
-                    <div class="range-row">
-                        <span class="min-label">-1.5</span>
-                        <input type="range" id="translateXSlider" min="-1.5" max="1.5" value="0" step="0.1">
-                        <span class="max-label">1.5</span>
-                    </div>
-
-                    <label>Translate Y</label>
-                    <div class="range-row">
-                        <span class="min-label">-1.5</span>
-                        <input type="range" id="translateYSlider" min="-1.5" max="1.5" value="0" step="0.1">
-                        <span class="max-label">1.5</span>
-                    </div>
-                </div>
-
                 <select id="animPath">
-                <option value="1">Animation Sequence 1 (Default)</option>
-                <option value="2">Animation Sequence 2</option>
-                <option value="3">Animation Sequence 3</option>
-                <option value="4">Animation Sequence 4 (Scaling)</option>
-                <option value="5">Animation Sequence 5 (Translation)</option>
+                    <option value="1">Animation Sequence 1 (Full Loop: Case 1–7)</option>
+                    <option value="2">Animation Sequence 2 (Reserved)</option>
+                    <option value="3">Animation Sequence 3 (Reserved)</option>
                 </select>
 
             </div>
