@@ -22,8 +22,8 @@ let theta = [0, 0, 0]; // [x, y, z]
 
 // animation control
 let isAnimating = false;
-let animPath = 1;   // 1 = animation, 2 & 3 reserved (do nothing)
-let animSeq = 1;    // 1..7 inside animation sequence 1
+let animPath = 1;   // 1 = animation seq 1, 2 = reverse of seq 1
+let animSeq = 1;    // 1..7 inside animation sequence
 let stageFrameCount = 0; // counts frames in current stage
 
 const defaultSpeed = 0.5;
@@ -362,6 +362,7 @@ function refreshGeometryBuffers() {
 function randomColor() {
   return [Math.random(), Math.random(), Math.random(), 1.0];
 }
+
 // -------------------------
 // UI SETUP
 // -------------------------
@@ -380,67 +381,91 @@ function setupUIEventListeners() {
   populateMinMax("depthSlider");
   populateMinMax("speedSlider");
 
-window.addEventListener("keydown", (event) => {
+  // cache slider elements
+  const speedSlider = document.getElementById("speedSlider");
+  const depthSlider = document.getElementById("depthSlider");
+  const spacingSlider = document.getElementById("spacingSlider");
+
+  window.addEventListener("keydown", (event) => {
     if (isAnimating) return;
-    const key = event.key.toLowerCase();
-        switch(event.key){
-            case "ArrowUp": animationSpeed = Math.min(animationSpeed + 0.1, 5); speedSlider.value = animationSpeed; break;
+    switch (event.key) {
+      case "ArrowUp":
+        animationSpeed = Math.min(animationSpeed + 0.1, 5);
+        if (speedSlider) speedSlider.value = animationSpeed;
+        break;
 
-            case "ArrowDown": animationSpeed = Math.max(animationSpeed - 0.1, 0); speedSlider.value = animationSpeed; break;
+      case "ArrowDown":
+        animationSpeed = Math.max(animationSpeed - 0.1, 0);
+        if (speedSlider) speedSlider.value = animationSpeed;
+        break;
 
-            case "ArrowRight": extrusionDepth = Math.min(extrusionDepth + 0.05, 1); depthSlider.value = extrusionDepth; break;
+      case "ArrowRight":
+        extrusionDepth = Math.min(extrusionDepth + 0.05, 1);
+        if (depthSlider) depthSlider.value = extrusionDepth;
+        break;
 
-            case "ArrowLeft": extrusionDepth = Math.max(extrusionDepth - 0.05, 0.1); depthSlider.value = extrusionDepth; break;
+      case "ArrowLeft":
+        extrusionDepth = Math.max(extrusionDepth - 0.05, 0.1);
+        if (depthSlider) depthSlider.value = extrusionDepth;
+        break;
 
-            case "1":
-              if(colorMode !== "per-letter") break;
-              colorT = randomColor();
-              refreshGeometryBuffers();
-              try { document.getElementById("colorPickerT").value = colorToHex(colorT); } catch {}
-              break;
+      case "1":
+        if (colorMode !== "per-letter") break;
+        colorT = randomColor();
+        refreshGeometryBuffers();
+        try {
+          document.getElementById("colorPickerT").value = colorToHex(colorT);
+        } catch {}
+        break;
 
-            case "2":
-              if(colorMode !== "per-letter") break;
-              colorE = randomColor();
-              refreshGeometryBuffers();
-              try { document.getElementById("colorPickerE").value = colorToHex(colorE); } catch {}
-              break;
+      case "2":
+        if (colorMode !== "per-letter") break;
+        colorE = randomColor();
+        refreshGeometryBuffers();
+        try {
+          document.getElementById("colorPickerE").value = colorToHex(colorE);
+        } catch {}
+        break;
 
-            case "3":
-              if(colorMode !== "per-letter") break;
-              colorC = randomColor();
-              refreshGeometryBuffers();
-              try { document.getElementById("colorPickerC").value = colorToHex(colorC); } catch {}
-              break;
+      case "3":
+        if (colorMode !== "per-letter") break;
+        colorC = randomColor();
+        refreshGeometryBuffers();
+        try {
+          document.getElementById("colorPickerC").value = colorToHex(colorC);
+        } catch {}
+        break;
 
-            case "4":
-              if(colorMode !== "per-letter") break;
-              colorH = randomColor();
-              refreshGeometryBuffers();
-              try { document.getElementById("colorPickerH").value = colorToHex(colorH); } catch {}
-              break;
+      case "4":
+        if (colorMode !== "per-letter") break;
+        colorH = randomColor();
+        refreshGeometryBuffers();
+        try {
+          document.getElementById("colorPickerH").value = colorToHex(colorH);
+        } catch {}
+        break;
 
-            case " ": // spacebar → start/stop
-              isAnimating = !isAnimating;
-              if (startBtn) startBtn.innerText = isAnimating ? "Stop Animation" : "Start Animation";
-              break;
+      case " ": // spacebar → start/stop
+        isAnimating = !isAnimating;
+        if (startBtn)
+          startBtn.innerText = isAnimating ? "Stop Animation" : "Start Animation";
+        break;
 
-            case "+": // Increase letter spacing
-                letterSpacing += 0.05;
-                letterSpacing = Math.min(letterSpacing, 1.0); // clamp max
-                document.getElementById("spacingSlider").value = letterSpacing;
-                refreshGeometryBuffers();
-                break;
+      case "+": // Increase letter spacing
+        letterSpacing += 0.05;
+        letterSpacing = Math.min(letterSpacing, 1.0); // clamp max
+        if (spacingSlider) spacingSlider.value = letterSpacing;
+        refreshGeometryBuffers();
+        break;
 
-            case "-": // Decrease letter spacing
-                letterSpacing -= 0.05;
-                letterSpacing = Math.max(letterSpacing, 0.05); // clamp min
-                refreshGeometryBuffers();
-                break;
-                
-            }
+      case "-": // Decrease letter spacing
+        letterSpacing -= 0.05;
+        letterSpacing = Math.max(letterSpacing, 0.05); // clamp min
+        if (spacingSlider) spacingSlider.value = letterSpacing;
+        refreshGeometryBuffers();
+        break;
+    }
   });
-
 
   document.getElementById("depthSlider").addEventListener("input", (e) => {
     extrusionDepth = parseFloat(e.target.value);
@@ -635,8 +660,10 @@ window.addEventListener("keydown", (event) => {
     scaleValue = 1;
     translationOffset = [0, 0, 0];
     translationVelocity = [0.02, 0.015];
-    animSeq = 1;
     stageFrameCount = 0;
+
+    // start from stage 1 for both paths
+    animSeq = 1;
   });
 }
 
@@ -660,19 +687,6 @@ function resetDefaults() {
   document.getElementById("depthSlider").value = defaultDepth;
   document.getElementById("spacingSlider").value = defaultSpacing;
 
-  //   // Reset colors to defaults
-  // colorT = defaultColorT.slice();
-  // colorE = defaultColorE.slice();
-  // colorC = defaultColorC.slice();
-  // colorH = defaultColorH.slice();
-
-  // try {
-  //   document.getElementById("colorPickerT").value = colorToHex(defaultColorT);
-  //   document.getElementById("colorPickerE").value = colorToHex(defaultColorE);
-  //   document.getElementById("colorPickerC").value = colorToHex(defaultColorC);
-  //   document.getElementById("colorPickerH").value = colorToHex(defaultColorH);
-  // } catch (err) {}
-
   if (startBtn) {
     startBtn.innerText = "Start Animation";
     startBtn.disabled = false;
@@ -680,161 +694,273 @@ function resetDefaults() {
 }
 
 // -------------------------
-// MASTER ANIMATION (Sequence 1)
-// case 1..7 in here
+// MASTER ANIMATION
+// animPath 1: original (cases 1–7)
+// animPath 2: reverse version of sequence 1
 // -------------------------
+
 function aniUpdate() {
-  // Only animation sequence 1 is active now
-  if (animPath !== 1) return;
-
-  switch (animSeq) {
-    // 1–4: rotation around Y axis
-    case 1:
-      theta[1] += animationSpeed;
-      if (theta[1] >= 180) {
-        theta[1] = 180;
-        animSeq++;
-        if (animSeq > 7) animSeq = 1;
-        stageFrameCount = 0;
-      }
-      break;
-
-    case 2:
-      theta[1] -= animationSpeed;
-      if (theta[1] <= 0) {
-        theta[1] = 0;
-        animSeq++;
-        if (animSeq > 7) animSeq = 1;
-        stageFrameCount = 0;
-      }
-      break;
-
-    case 3:
-      theta[1] -= animationSpeed;
-      if (theta[1] <= -180) {
-        theta[1] = -180;
-        animSeq++;
-        if (animSeq > 7) animSeq = 1;
-        stageFrameCount = 0;
-      }
-      break;
-
-    case 4:
-      theta[1] += animationSpeed;
-      if (theta[1] >= 0) {
-        theta[1] = 0;
-        animSeq++;
-        if (animSeq > 7) animSeq = 1;
-        stageFrameCount = 0;
-      }
-      break;
-
-    // 5) Enlarge scaling until hitting border (no outside)
-    case 5: {
-      const step = 0.01 * animationSpeed;
-      const maxScale = getMaxScaleToFit();
-
-      if (stageFrameCount === 0) {
-        translationOffset = [0, 0, 0];
-        scaleValue = Math.max(1.0, scaleValue);
-      }
-
-      if (scaleValue < maxScale) {
-        scaleValue += step;
-        if (scaleValue >= maxScale) {
-          scaleValue = maxScale;
-          clampTranslation(); // ensure within bounds
+  // ==========================================
+  // SEQUENCE 1: Rotate -> Scale -> Bounce
+  // ==========================================
+  if (animPath === 1) {
+    switch (animSeq) {
+      // 1–4: rotation around Y axis
+      case 1:
+        theta[1] += animationSpeed;
+        if (theta[1] >= 180) {
+          theta[1] = 180;
           animSeq++;
-          if (animSeq > 7) animSeq = 1;
           stageFrameCount = 0;
         }
-      } else {
-        scaleValue = maxScale;
-        clampTranslation();
-        animSeq++;
-        if (animSeq > 7) animSeq = 1;
-        stageFrameCount = 0;
+        break;
+
+      case 2:
+        theta[1] -= animationSpeed;
+        if (theta[1] <= 0) {
+          theta[1] = 0;
+          animSeq++;
+          stageFrameCount = 0;
+        }
+        break;
+
+      case 3:
+        theta[1] -= animationSpeed;
+        if (theta[1] <= -180) {
+          theta[1] = -180;
+          animSeq++;
+          stageFrameCount = 0;
+        }
+        break;
+
+      case 4:
+        theta[1] += animationSpeed;
+        if (theta[1] >= 0) {
+          theta[1] = 0;
+          animSeq++;
+          stageFrameCount = 0;
+        }
+        break;
+
+      // 5) Enlarge scaling until hitting border
+      case 5: {
+        const step = 0.01 * animationSpeed;
+        const maxScale = getMaxScaleToFit();
+
+        if (stageFrameCount === 0) {
+          translationOffset = [0, 0, 0];
+          scaleValue = Math.max(1.0, scaleValue);
+        }
+
+        if (scaleValue < maxScale) {
+          scaleValue += step;
+          if (scaleValue >= maxScale) {
+            scaleValue = maxScale;
+            clampTranslation();
+            animSeq++;
+            stageFrameCount = 0;
+          }
+        } else {
+          scaleValue = maxScale;
+          clampTranslation();
+          animSeq++;
+          stageFrameCount = 0;
+        }
+        break;
       }
-      break;
-    }
 
-    // 6) Diminish scaling back to original size (center)
-    case 6: {
-      const step = 0.01 * animationSpeed;
-      translationOffset[0] *= 0.9;
-      translationOffset[1] *= 0.9;
+      // 6) Diminish scaling back to original size
+      case 6: {
+        const step = 0.01 * animationSpeed;
+        translationOffset[0] *= 0.9; // pull to center
+        translationOffset[1] *= 0.9;
 
-      if (scaleValue > 1.0) {
-        scaleValue -= step;
-        if (scaleValue <= 1.0) {
+        if (scaleValue > 1.0) {
+          scaleValue -= step;
+          if (scaleValue <= 1.0) {
+            scaleValue = 1.0;
+            animSeq++;
+            stageFrameCount = 0;
+          }
+        } else {
           scaleValue = 1.0;
           animSeq++;
-          if (animSeq > 7) animSeq = 1;
           stageFrameCount = 0;
         }
-      } else {
-        scaleValue = 1.0;
-        animSeq++;
-        if (animSeq > 7) animSeq = 1;
-        stageFrameCount = 0;
+        break;
       }
-      break;
+
+      // 7) Bounce around within screen bounds
+      case 7: {
+        if (stageFrameCount === 0) {
+          scaleValue = 1.0;
+          translationOffset = [0, 0, 0];
+          translationVelocity = [0.02, 0.015];
+        }
+
+        // Logic for bouncing
+        handleBouncing();
+
+        // Run for set time then Loop back to 1
+        const MAX_FRAMES = 600;
+        if (stageFrameCount > MAX_FRAMES) {
+          translationOffset = [0, 0, 0];
+          translationVelocity = [0.02, 0.015];
+          animSeq = 1; // LOOP BACK TO START
+          stageFrameCount = 0;
+        }
+        break;
+      }
     }
+  }
 
-    // 7) Move around within screen bounds (bouncing)
-    case 7: {
-      if (stageFrameCount === 0) {
-        scaleValue = 1.0;
-        translationOffset = [0, 0, 0];
-        translationVelocity = [0.02, 0.015];
+  // ==========================================
+  // SEQUENCE 2: REVERSE (Bounce -> Scale -> Rotate)
+  // ==========================================
+  else if (animPath === 2) {
+    switch (animSeq) {
+      // 1) Bounce first (Reverse of Seq 1 Case 7)
+      case 1: {
+        if (stageFrameCount === 0) {
+          scaleValue = 1.0;
+          translationOffset = [0, 0, 0];
+          translationVelocity = [0.02, 0.015];
+        }
+
+        handleBouncing();
+
+        // Run for set time then move to Scaling
+        const MAX_FRAMES = 600;
+        if (stageFrameCount > MAX_FRAMES) {
+          // Force return to center before scaling starts
+          translationOffset = [0, 0, 0]; 
+          animSeq++;
+          stageFrameCount = 0;
+        }
+        break;
       }
 
-      const aspect = canvas.width / canvas.height;
-      const orthoHalfHeight = ORTHO_HALF_HEIGHT;
-      const orthoHalfWidth = ORTHO_HALF_HEIGHT * aspect;
+      // 2) Scale Up (Reverse of Seq 1 Case 6)
+      // Seq 1 Case 6 was Max -> 1.0, so this is 1.0 -> Max
+      case 2: {
+        const step = 0.01 * animationSpeed;
+        const maxScale = getMaxScaleToFit();
 
-      const halfWordWidth = getTotalWordWidth() / 2;
-      const halfWordHeight = TECH_HEIGHT / 2;
+        if (stageFrameCount === 0) {
+          translationOffset = [0, 0, 0];
+          scaleValue = 1.0;
+        }
 
-      const maxX = Math.max(0, orthoHalfWidth - halfWordWidth);
-      const maxY = Math.max(0, orthoHalfHeight - halfWordHeight);
-
-      translationOffset[0] += translationVelocity[0] * animationSpeed;
-      translationOffset[1] += translationVelocity[1] * animationSpeed;
-
-      // bounce at borders
-      if (translationOffset[0] > maxX) {
-        translationOffset[0] = maxX;
-        translationVelocity[0] *= -1;
-      } else if (translationOffset[0] < -maxX) {
-        translationOffset[0] = -maxX;
-        translationVelocity[0] *= -1;
+        if (scaleValue < maxScale) {
+          scaleValue += step;
+          if (scaleValue >= maxScale) {
+            scaleValue = maxScale;
+            animSeq++;
+            stageFrameCount = 0;
+          }
+        } else {
+            animSeq++;
+            stageFrameCount = 0;
+        }
+        break;
       }
 
-      if (translationOffset[1] > maxY) {
-        translationOffset[1] = maxY;
-        translationVelocity[1] *= -1;
-      } else if (translationOffset[1] < -maxY) {
-        translationOffset[1] = -maxY;
-        translationVelocity[1] *= -1;
+      // 3) Scale Down (Reverse of Seq 1 Case 5)
+      // Seq 1 Case 5 was 1.0 -> Max, so this is Max -> 1.0
+      case 3: {
+        const step = 0.01 * animationSpeed;
+        
+        if (scaleValue > 1.0) {
+          scaleValue -= step;
+          if (scaleValue <= 1.0) {
+            scaleValue = 1.0;
+            animSeq++;
+            stageFrameCount = 0;
+          }
+        } else {
+          scaleValue = 1.0;
+          animSeq++;
+          stageFrameCount = 0;
+        }
+        break;
       }
 
-      clampTranslation(); // final guard against precision drift
+      // 4) Rotate 0 -> -180 (Reverse of Seq 1 Case 4: -180 -> 0)
+      case 4:
+        theta[1] -= animationSpeed;
+        if (theta[1] <= -180) {
+          theta[1] = -180;
+          animSeq++;
+          stageFrameCount = 0;
+        }
+        break;
 
-      // let translation stage run for some time, then loop back to stage 1
-      const MAX_FRAMES = 600; // ~10 seconds at ~60fps
-      if (stageFrameCount > MAX_FRAMES) {
-        translationOffset = [0, 0, 0];
-        translationVelocity = [0.02, 0.015];
-        animSeq = 1;
-        stageFrameCount = 0;
-      }
+      // 5) Rotate -180 -> 0 (Reverse of Seq 1 Case 3: 0 -> -180)
+      case 5:
+        theta[1] += animationSpeed;
+        if (theta[1] >= 0) {
+          theta[1] = 0;
+          animSeq++;
+          stageFrameCount = 0;
+        }
+        break;
 
-      break;
+      // 6) Rotate 0 -> 180 (Reverse of Seq 1 Case 2: 180 -> 0)
+      case 6:
+        theta[1] += animationSpeed;
+        if (theta[1] >= 180) {
+          theta[1] = 180;
+          animSeq++;
+          stageFrameCount = 0;
+        }
+        break;
+
+      // 7) Rotate 180 -> 0 (Reverse of Seq 1 Case 1: 0 -> 180)
+      case 7:
+        theta[1] -= animationSpeed;
+        if (theta[1] <= 0) {
+          theta[1] = 0;
+          animSeq = 1; // LOOP BACK TO START OF SEQ 2
+          stageFrameCount = 0;
+        }
+        break;
     }
   }
 
   stageFrameCount++;
+}
+
+// Helper function to keep code clean (extracted from old Case 7 logic)
+function handleBouncing() {
+  const aspect = canvas.width / canvas.height;
+  const orthoHalfHeight = ORTHO_HALF_HEIGHT;
+  const orthoHalfWidth = ORTHO_HALF_HEIGHT * aspect;
+
+  const halfWordWidth = getTotalWordWidth() / 2;
+  const halfWordHeight = TECH_HEIGHT / 2;
+
+  const maxX = Math.max(0, orthoHalfWidth - halfWordWidth);
+  const maxY = Math.max(0, orthoHalfHeight - halfWordHeight);
+
+  translationOffset[0] += translationVelocity[0] * animationSpeed;
+  translationOffset[1] += translationVelocity[1] * animationSpeed;
+
+  // bounce at borders
+  if (translationOffset[0] > maxX) {
+    translationOffset[0] = maxX;
+    translationVelocity[0] *= -1;
+  } else if (translationOffset[0] < -maxX) {
+    translationOffset[0] = -maxX;
+    translationVelocity[0] *= -1;
+  }
+
+  if (translationOffset[1] > maxY) {
+    translationOffset[1] = maxY;
+    translationVelocity[1] *= -1;
+  } else if (translationOffset[1] < -maxY) {
+    translationOffset[1] = -maxY;
+    translationVelocity[1] *= -1;
+  }
 }
 
 // -------------------------
@@ -876,9 +1002,9 @@ function render() {
   const aspect = canvas.width / canvas.height;
   projectionMatrix = ortho(
     -ORTHO_HALF_HEIGHT * aspect,
-     ORTHO_HALF_HEIGHT * aspect,
+    ORTHO_HALF_HEIGHT * aspect,
     -ORTHO_HALF_HEIGHT,
-     ORTHO_HALF_HEIGHT,
+    ORTHO_HALF_HEIGHT,
     -10,
     10
   );
