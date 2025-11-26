@@ -7,7 +7,7 @@
 
     <style>
         body {
-            background: #222;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
             margin: 0;
             padding: 0;
             display: flex;
@@ -16,7 +16,7 @@
             height: 100vh;
             overflow: hidden;
             color: white;
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         .container {
@@ -35,11 +35,13 @@
         }
 
         #gl-canvas {
-            background: black;
-            border: 2px solid #666;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            border: 3px solid;
+            border-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%) 1;
+            box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3), 0 0 60px rgba(118, 75, 162, 0.2);
             max-width: 100%;
             max-height: 100%;
+            border-radius: 8px;
         }
 
         .panel-container {
@@ -52,20 +54,44 @@
         #control-panel {
             width: 250px;
             padding: 20px;
-            background: #333;
-            border: 2px solid #444;
-            border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            background: linear-gradient(135deg, rgba(30, 30, 50, 0.95) 0%, rgba(40, 40, 70, 0.95) 100%);
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 20px rgba(102, 126, 234, 0.1);
             box-sizing: border-box;
             overflow-y: auto;
+            backdrop-filter: blur(10px);
+        }
+
+        #ui-panel::-webkit-scrollbar,
+        #control-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #ui-panel::-webkit-scrollbar-track,
+        #control-panel::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+
+        #ui-panel::-webkit-scrollbar-thumb,
+        #control-panel::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
         }
 
         h3 {
             margin-top: 0;
             margin-bottom: 15px;
-            font-size: 18px;
-            border-bottom: 2px solid #555;
+            font-size: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            border-bottom: 2px solid rgba(102, 126, 234, 0.3);
             padding-bottom: 10px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
         }
 
         label {
@@ -73,20 +99,65 @@
             margin-top: 15px;
             margin-bottom: 5px;
             font-size: 14px;
+            color: #e0e0e0;
         }
 
         input[type="color"] {
             width: 100%;
             height: 40px;
-            border: 2px solid #555;
-            border-radius: 4px;
+            border: 2px solid rgba(102, 126, 234, 0.4);
+            border-radius: 8px;
             cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        input[type="color"]:hover {
+            border-color: rgba(102, 126, 234, 0.8);
+            box-shadow: 0 0 15px rgba(102, 126, 234, 0.3);
         }
 
         input[type="range"] {
             width: 100%;
             cursor: pointer;
-            height: 25px;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: linear-gradient(to right, rgba(102, 126, 234, 0.3), rgba(118, 75, 162, 0.3));
+            border-radius: 5px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.8);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.8);
         }
 
         .range-row {
@@ -99,9 +170,10 @@
         .range-row .max-label {
             width: 48px;
             text-align: center;
-            font-size: 12px;
-            color: #ddd;
+            font-size: 11px;
+            color: #b0b0b0;
             flex: 0 0 48px;
+            font-weight: 500;
         }
 
         .range-row input[type="range"] {
@@ -112,50 +184,65 @@
             width: 100%;
             padding: 12px;
             font-size: 14px;
+            font-weight: 600;
             cursor: pointer;
-            background: #555;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            border: 2px solid #666;
-            border-radius: 5px;
-            transition: all 0.3s;
+            border: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
             margin-top: 5px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            letter-spacing: 0.5px;
         }
 
         button:hover {
-            background: #666;
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
         }
 
         button:active {
-            background: #444;
             transform: translateY(0);
+            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
         }
+
 
         select {
             width: 100%;
             padding: 10px;
-            background: #444;
+            background: rgba(30, 30, 50, 0.6);
             color: white;
-            border: 2px solid #666;
-            border-radius: 5px;
+            border: 2px solid rgba(102, 126, 234, 0.4);
+            border-radius: 8px;
             font-size: 12px;
             cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
             margin-top: 10px;
         }
 
         select:hover {
-            background: #555;
-            border-color: #888;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+            background: rgba(40, 40, 60, 0.8);
+            border-color: rgba(102, 126, 234, 0.7);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.2);
         }
 
         select:focus {
             outline: none;
-            border-color: #aaa;
-            box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+            border-color: #667eea;
+            box-shadow: 0 0 15px rgba(102, 126, 234, 0.5);
+        }
+
+        .section-box {
+            background: rgba(20, 20, 40, 0.5) !important;
+            border: 1px solid rgba(102, 126, 234, 0.2) !important;
+            transition: all 0.3s ease;
+        }
+
+        .section-box:hover {
+            border-color: rgba(102, 126, 234, 0.4) !important;
+            box-shadow: 0 0 15px rgba(102, 126, 234, 0.1);
         }
     </style>
 </head>
@@ -172,11 +259,11 @@
         <div class="panel-container">
             <!-- ==================== UI PANEL ==================== -->
             <div id="ui-panel">
-                <h3>UI Panel</h3>
-
+                <h3>🎨 UI Panel</h3>
+        
                 <!-- Color Mode Section -->
-                <div style="background: #2a2a2a; padding: 12px; border-radius: 6px; margin-bottom: 15px;">
-                    <label style="margin-top: 0; margin-bottom: 8px; font-weight: bold; color: #ddd;">Color Mode</label>
+                <div class="section-box" style="background: rgba(20, 20, 40, 0.5); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid rgba(102, 126, 234, 0.2);">
+                    <label style="margin-top: 0; margin-bottom: 8px; font-weight: 600; color: #e8e8e8; font-size: 13px;">Color Mode</label>
                     <select id="colorMode">
                         <option value="per-letter">Per Letter (Default)</option>
                         <option value="single">Single Color</option>
@@ -185,49 +272,49 @@
                 </div>
 
                 <!-- Colors Section -->
-                <div style="background: #2a2a2a; padding: 12px; border-radius: 6px; margin-bottom: 15px;">
-                    <div style="font-weight: bold; color: #ddd; margin-bottom: 12px; font-size: 13px;">Colors</div>
-
+                <div class="section-box" style="background: rgba(20, 20, 40, 0.5); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid rgba(102, 126, 234, 0.2);">
+                    <div style="font-weight: 600; color: #e8e8e8; margin-bottom: 12px; font-size: 13px;">Colors</div>
+        
                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                        <span style="flex: 1; font-size: 13px;">Letter T</span>
+                        <span style="flex: 1; font-size: 13px; color: #d0d0d0;">Letter T</span>
                         <input type="color" id="colorPickerT" value="#c13af2"
-                            style="width: 40px; height: 40px; border: 2px solid #555; border-radius: 4px; cursor: pointer;">
+                            style="width: 40px; height: 40px; border: 2px solid rgba(102, 126, 234, 0.4); border-radius: 8px; cursor: pointer;">
                     </div>
 
                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                        <span style="flex: 1; font-size: 13px;">Letter E</span>
+                        <span style="flex: 1; font-size: 13px; color: #d0d0d0;">Letter E</span>
                         <input type="color" id="colorPickerE" value="#3d48e6"
-                            style="width: 40px; height: 40px; border: 2px solid #555; border-radius: 4px; cursor: pointer;">
+                            style="width: 40px; height: 40px; border: 2px solid rgba(102, 126, 234, 0.4); border-radius: 8px; cursor: pointer;">
                     </div>
 
                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                        <span style="flex: 1; font-size: 13px;">Letter C</span>
+                        <span style="flex: 1; font-size: 13px; color: #d0d0d0;">Letter C</span>
                         <input type="color" id="colorPickerC" value="#3cd3b4"
-                            style="width: 40px; height: 40px; border: 2px solid #555; border-radius: 4px; cursor: pointer;">
+                            style="width: 40px; height: 40px; border: 2px solid rgba(102, 126, 234, 0.4); border-radius: 8px; cursor: pointer;">
                     </div>
 
                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                        <span style="flex: 1; font-size: 13px;">Letter H</span>
+                        <span style="flex: 1; font-size: 13px; color: #d0d0d0;">Letter H</span>
                         <input type="color" id="colorPickerH" value="#e2eb98"
-                            style="width: 40px; height: 40px; border: 2px solid #555; border-radius: 4px; cursor: pointer;">
+                            style="width: 40px; height: 40px; border: 2px solid rgba(102, 126, 234, 0.4); border-radius: 8px; cursor: pointer;">
                     </div>
 
                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                        <span style="flex: 1; font-size: 13px;">Single Color</span>
+                        <span style="flex: 1; font-size: 13px; color: #d0d0d0;">Single Color</span>
                         <input type="color" id="singleColorPicker" value="#00ffcc"
-                            style="width: 40px; height: 40px; border: 2px solid #555; border-radius: 4px; cursor: pointer;">
+                            style="width: 40px; height: 40px; border: 2px solid rgba(102, 126, 234, 0.4); border-radius: 8px; cursor: pointer;">
                     </div>
 
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <span style="flex: 1; font-size: 13px;">Background</span>
-                        <input type="color" id="bgColorPicker" value="#f5e5e5"
-                            style="width: 40px; height: 40px; border: 2px solid #555; border-radius: 4px; cursor: pointer;">
+                        <span style="flex: 1; font-size: 13px; color: #d0d0d0;">Background</span>
+                        <input type="color" id="bgColorPicker" value="#000000"
+                            style="width: 40px; height: 40px; border: 2px solid rgba(102, 126, 234, 0.4); border-radius: 8px; cursor: pointer;">
                     </div>
                 </div>
 
                 <!-- Spacing Section -->
-                <div style="background: #2a2a2a; padding: 12px; border-radius: 6px;">
-                    <label style="margin-top: 0; margin-bottom: 8px; font-weight: bold; color: #ddd;">Letter Spacing</label>
+                <div class="section-box" style="background: rgba(20, 20, 40, 0.5); padding: 12px; border-radius: 8px; border: 1px solid rgba(102, 126, 234, 0.2);">
+                    <label style="margin-top: 0; margin-bottom: 8px; font-weight: 600; color: #e8e8e8; font-size: 13px;">Letter Spacing</label>
                     <div class="range-row">
                         <span class="min-label" id="spacingSliderMin"></span>
                         <input type="range" id="spacingSlider" min="0" max="2" value="0.2" step="0.1">
@@ -238,32 +325,56 @@
 
             <!-- ==================== ANIMATION PANEL ==================== -->
             <div id="control-panel">
-                <h3>Animation Properties</h3>
+                <h3>⚡ Animation Panel</h3>
 
-                <label>Extrusion Depth</label>
-                <div class="range-row">
-                    <span class="min-label" id="depthSliderMin"></span>
-                    <input type="range" id="depthSlider" min="0" max="1" value="0.3" step="0.1">
-                    <span class="max-label" id="depthSliderMax"></span>
+                <div class="section-box" style="background: rgba(20, 20, 40, 0.5); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid rgba(102, 126, 234, 0.2);">
+                    <label style="margin-top: 0; margin-bottom: 8px; font-weight: 600; color: #e8e8e8; font-size: 13px;">Extrusion Depth</label>
+                    <div class="range-row">
+                        <span class="min-label" id="depthSliderMin"></span>
+                        <input type="range" id="depthSlider" min="0" max="1" value="0.3" step="0.1">
+                        <span class="max-label" id="depthSliderMax"></span>
+                    </div>
                 </div>
 
-                <label>Animation Speed</label>
-                <div class="range-row">
-                    <span class="min-label" id="speedSliderMin"></span>
-                    <input type="range" id="speedSlider" min="0.1" max="5" value="0.5" step="0.1">
-                    <span class="max-label" id="speedSliderMax"></span>
+                <div class="section-box" style="background: rgba(20, 20, 40, 0.5); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid rgba(102, 126, 234, 0.2);">
+                    <label style="margin-top: 0; margin-bottom: 8px; font-weight: 600; color: #e8e8e8; font-size: 13px;">Animation Speed</label>
+                    <div class="range-row">
+                        <span class="min-label" id="speedSliderMin"></span>
+                        <input type="range" id="speedSlider" min="1" max="5" value="0.5" step="0.5">
+                        <span class="max-label" id="speedSliderMax"></span>
+                    </div>
                 </div>
 
-                <button id="startBtn" style="margin-top: 20px;">Start Animation</button>
+                <button id="startBtn" style="margin-top: 10px; margin-bottom: 5px;">Start Animation</button>
 
-                <button id="resetBtn">Reset Animation</button>
+                <button id="resetBtn" style="margin-bottom: 15px;">Reset Animation</button>
 
-                <select id="animPath">
-                    <option value="1">Animation Sequence 1 (Full Loop: Case 1–7)</option>
-                    <option value="2">Animation Sequence 2 (Reserved)</option>
-                    <option value="3">Animation Sequence 3 (Reserved)</option>
-                </select>
+                <div id="translationControl" style="display:none; background: rgba(20, 20, 40, 0.5); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid rgba(102, 126, 234, 0.2);">
+                    <label style="margin-top: 0; margin-bottom: 8px; font-weight: 600; color: #e8e8e8; font-size: 13px;">Translate X</label>
+                    <div class="range-row">
+                        <span class="min-label">-1.5</span>
+                        <input type="range" id="translateXSlider" min="-1.5" max="1.5" value="0" step="0.1">
+                        <span class="max-label">1.5</span>
+                    </div>
 
+                    <label style="margin-top: 10px; margin-bottom: 8px; font-weight: 600; color: #e8e8e8; font-size: 13px;">Translate Y</label>
+                    <div class="range-row">
+                        <span class="min-label">-1.5</span>
+                        <input type="range" id="translateYSlider" min="-1.5" max="1.5" value="0" step="0.1">
+                        <span class="max-label">1.5</span>
+                    </div>
+                </div>
+
+                <div class="section-box" style="background: rgba(20, 20, 40, 0.5); padding: 12px; border-radius: 8px; border: 1px solid rgba(102, 126, 234, 0.2);">
+                    <label style="margin-top: 0; margin-bottom: 8px; font-weight: 600; color: #e8e8e8; font-size: 13px;">Animation Sequence</label>
+                    <select id="animPath">
+                        <option value="1">Sequence 1 (Y-Axis Rotation)</option>
+                        <option value="2">Sequence 2 (X-Axis Rotation)</option>
+                        <option value="3">Sequence 3 (Z-Axis Rotation)</option>
+                        <option value="4">Sequence 4 (Scaling)</option>
+                        <option value="5">Sequence 5 (Translation)</option>
+                    </select>
+                </div>
             </div>
         </div>
     </div>
