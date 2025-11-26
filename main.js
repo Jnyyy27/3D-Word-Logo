@@ -9,14 +9,22 @@ let points = [];
 let colors = [];
 let normals = [];
 
-
 let modelViewMatrix, projectionMatrix;
 let modelViewMatrixLoc, projectionMatrixLoc;
 
-let theta = [0, 0, 0];
+// rotation (Euler angles)
+let theta = [0, 0, 0]; // [x, y, z]
+
+// animation control
 let isAnimating = false;
-let animSeq = 1;
-let animPath = 1;
+let animPath = 1; // 1 = master animation, 2 & 3 do nothing (reserved)
+
+// master stage 1..7 inside animation sequence 1
+let masterStage = 1;       // 1..7
+let stageFrameCount = 0;   // counts frames in current stage
+let scaleDir = 1;          // used in pulsing scale
+const stageOrderSeq1 = [1, 2, 3, 4, 5, 6, 7];
+const stageOrderSeq2 = [7, 6, 5, 4, 3, 2, 1];
 
 const defaultSpeed = 0.5;
 const defaultDepth = 0.3;
@@ -26,18 +34,16 @@ let animationSpeed = defaultSpeed;
 let extrusionDepth = defaultDepth;
 let letterSpacing = defaultSpacing;
 
+// scaling
 let scaleValue = 1;
 const scaleLimits = { min: 0.7, max: 1.4 };
 
+// translation
 let translationOffset = [0, 0, 0];
-const translationLimit = 1.2;
-const translationStepMultiplier = 0.02;
+let translationVelocity = [0.02, 0.015];
 
+// UI elements
 let startBtn;
-let translationControl;
-let translationXSlider;
-let translationYSlider;
-let translationManualOverride = false;
 
 // Individual letter colors - more vibrant
 let colorT = [193 / 255, 58 / 255, 242 / 255, 1.0]; // Purple
@@ -52,6 +58,72 @@ const defaultColorT = colorT.slice();
 const defaultColorE = colorE.slice();
 const defaultColorC = colorC.slice();
 const defaultColorH = colorH.slice();
+
+// Word geometry helpers
+const TECH_HEIGHT = 1.0; // you use "height = 1.0" in buildTECH()
+
+function getTotalWordWidth() {
+  const letterWidth = 0.8;
+  const gap = letterSpacing;
+  // T(1.0) + gap + E(0.8) + gap + C(0.8) + gap + H(0.8)
+  return 1.0 + gap + letterWidth + gap + letterWidth + gap + letterWidth;
+}
+
+// Maximum scale so that the word still stays fully inside the ortho projection
+function getMaxScaleToFit() {
+  const aspect = canvas.width / canvas.height;
+
+  // from ortho(-3*aspect, 3*aspect, -3, 3, -10, 10)
+  const orthoHalfWidth = 3 * aspect;
+  const orthoHalfHeight = 3;
+
+  const halfWordWidth = getTotalWordWidth() / 2;
+  const halfWordHeight = TECH_HEIGHT / 2;
+
+  const maxScaleX = orthoHalfWidth / halfWordWidth;
+  const maxScaleY = orthoHalfHeight / halfWordHeight;
+
+  return Math.min(maxScaleX, maxScaleY);
+}
+
+// Clamp translation so the scaled word never goes outside the screen
+function clampTranslation() {
+  const aspect = canvas.width / canvas.height;
+
+  const orthoHalfWidth = 3 * aspect;
+  const orthoHalfHeight = 3;
+
+  const halfWordWidth = (getTotalWordWidth() * scaleValue) / 2;
+  const halfWordHeight = (TECH_HEIGHT * scaleValue) / 2;
+
+  const maxX = Math.max(0, orthoHalfWidth - halfWordWidth);
+  const maxY = Math.max(0, orthoHalfHeight - halfWordHeight);
+
+  translationOffset[0] = Math.min(maxX, Math.max(-maxX, translationOffset[0]));
+  translationOffset[1] = Math.min(maxY, Math.max(-maxY, translationOffset[1]));
+}
+
+// Simple scale matrix helper (MV.js lacks scalem)
+function scalem(x, y, z) {
+  const result = mat4();
+  result[0][0] = x;
+  result[1][1] = y;
+  result[2][2] = z;
+  return result;
+}
+
+// Restore translation state to the centered default
+function resetTranslationToCenter() {
+  translationOffset = [0, 0, 0];
+  translationVelocity = [0.02, 0.015];
+}
+
+function getCurrentStageNumber() {
+  const order = animPath === 2 ? stageOrderSeq2 : stageOrderSeq1;
+  const index = Math.max(0, Math.min(masterStage - 1, order.length - 1));
+  return order[index];
+}
+
 // -------------------------
 // BOX HELPER - EACH FACE GETS DIFFERENT COLOR
 // -------------------------
@@ -69,13 +141,12 @@ function createBox(x, y, z, w, h, d, baseColor) {
   ];
 
   // Generate 6 different colors based on the base color
-  // Each face will have a unique hue shift
   const frontColor = [
     baseColor[0] * 0.7,
     baseColor[1] * 0.7,
     Math.min(baseColor[2] * 1.4 + 0.3, 1.0),
     1.0,
-  ]; // Original color - facing camera
+  ];
 
   const rightColor = [
     Math.min(baseColor[0] * 1.2 + 0.2, 1.0),
@@ -117,12 +188,12 @@ function createBox(x, y, z, w, h, d, baseColor) {
   ];
 
   const faceColors = [
-    frontColor, // front - original color
-    rightColor, // right - shifted hue
-    leftColor, // left - different shift
-    topColor, // top - distinct color
-    backColor, // back - unique color
-    bottomColor, // bottom - another variation
+    frontColor,
+    rightColor,
+    leftColor,
+    topColor,
+    backColor,
+    bottomColor,
   ];
 
   for (let faceIdx = 0; faceIdx < faces.length; faceIdx++) {
@@ -143,11 +214,11 @@ function buildTECH() {
   colors = [];
 
   const thickness = 0.2;
-  const height = 1.0;
+  const height = TECH_HEIGHT;
   const letterWidth = 0.8;
   const gap = letterSpacing;
 
-  // Calculate total width: T(1.0) + gap + E(0.8) + gap + C(0.8) + gap + H(0.8)
+  // Total width: T(1.0) + gap + E(0.8) + gap + C(0.8) + gap + H(0.8)
   const totalWidth =
     1.0 + gap + letterWidth + gap + letterWidth + gap + letterWidth;
 
@@ -249,9 +320,6 @@ window.onload = function init() {
 function getUIElement() {
   canvas = document.getElementById("gl-canvas");
   startBtn = document.getElementById("startBtn");
-  translationControl = document.getElementById("translationControl");
-  translationXSlider = document.getElementById("translateXSlider");
-  translationYSlider = document.getElementById("translateYSlider");
 }
 
 function configWebGL() {
@@ -304,13 +372,23 @@ function refreshGeometryBuffers() {
   gl.bufferData(gl.ARRAY_BUFFER, flatten(colors), gl.STATIC_DRAW);
 }
 
+// helper for master stage transitions
+function advanceStage() {
+  masterStage++;
+  if (masterStage > 7) {
+    masterStage = 1;
+    resetTranslationToCenter();
+  }
+  stageFrameCount = 0;
+}
+
 function setupUIEventListeners() {
   // populate min/max labels next to sliders (sequence: min - slider - max)
   function populateMinMax(id) {
     try {
       const input = document.getElementById(id);
-      const minSpan = document.getElementById(id + 'Min');
-      const maxSpan = document.getElementById(id + 'Max');
+      const minSpan = document.getElementById(id + "Min");
+      const maxSpan = document.getElementById(id + "Max");
       if (input && minSpan) minSpan.innerText = input.min;
       if (input && maxSpan) maxSpan.innerText = input.max;
     } catch (err) {
@@ -318,9 +396,9 @@ function setupUIEventListeners() {
     }
   }
 
-  populateMinMax('spacingSlider');
-  populateMinMax('depthSlider');
-  populateMinMax('speedSlider');
+  populateMinMax("spacingSlider");
+  populateMinMax("depthSlider");
+  populateMinMax("speedSlider");
 
   document.getElementById("depthSlider").addEventListener("input", (e) => {
     extrusionDepth = parseFloat(e.target.value);
@@ -397,20 +475,32 @@ function setupUIEventListeners() {
         colorH = defaultColorH.slice();
         // Update the per-letter color pickers to reflect the restored defaults
         try {
-          document.getElementById("colorPickerT").value = colorToHex(defaultColorT);
-          document.getElementById("colorPickerE").value = colorToHex(defaultColorE);
-          document.getElementById("colorPickerC").value = colorToHex(defaultColorC);
-          document.getElementById("colorPickerH").value = colorToHex(defaultColorH);
+          document.getElementById("colorPickerT").value =
+            colorToHex(defaultColorT);
+          document.getElementById("colorPickerE").value =
+            colorToHex(defaultColorE);
+          document.getElementById("colorPickerC").value =
+            colorToHex(defaultColorC);
+          document.getElementById("colorPickerH").value =
+            colorToHex(defaultColorH);
         } catch (err) {
           // ignore if elements not present yet
         }
       } else {
         // normal per-letter: read current picker values
         try {
-          colorT = hexToColor(document.getElementById("colorPickerT").value);
-          colorE = hexToColor(document.getElementById("colorPickerE").value);
-          colorC = hexToColor(document.getElementById("colorPickerC").value);
-          colorH = hexToColor(document.getElementById("colorPickerH").value);
+          colorT = hexToColor(
+            document.getElementById("colorPickerT").value
+          );
+          colorE = hexToColor(
+            document.getElementById("colorPickerE").value
+          );
+          colorC = hexToColor(
+            document.getElementById("colorPickerC").value
+          );
+          colorH = hexToColor(
+            document.getElementById("colorPickerH").value
+          );
         } catch (err) {
           // ignore if elements not present
         }
@@ -419,39 +509,41 @@ function setupUIEventListeners() {
     refreshGeometryBuffers();
   });
 
-  document.getElementById("singleColorPicker").addEventListener("input", (e) => {
-    if (colorMode === "single") {
-      applySingleColor();
-      console.log('singleColorPicker changed — applying single color and refreshing buffers');
-      refreshGeometryBuffers();
-    }
+  document
+    .getElementById("singleColorPicker")
+    .addEventListener("input", () => {
+      if (colorMode === "single") {
+        applySingleColor();
+        refreshGeometryBuffers();
+      }
     });
 
   function applySingleColor() {
     const hex = document.getElementById("singleColorPicker").value;
     const col = [
-        parseInt(hex.substr(1, 2), 16) / 255,
-        parseInt(hex.substr(3, 2), 16) / 255,
-        parseInt(hex.substr(5, 2), 16) / 255,
-        1.0,
-      ];
+      parseInt(hex.substr(1, 2), 16) / 255,
+      parseInt(hex.substr(3, 2), 16) / 255,
+      parseInt(hex.substr(5, 2), 16) / 255,
+      1.0,
+    ];
     colorT = col.slice();
     colorE = col.slice();
     colorC = col.slice();
     colorH = col.slice();
   }
-    function applyRainbowColors() {
-        const rainbowColors = [
-            [1.0, 0.0, 0.0, 1.0],    // Red
-            [1.0, 0.5, 0.0, 1.0],    // Orange
-            [1.0, 1.0, 0.0, 1.0],    // Yellow
-            [0.0, 1.0, 0.0, 1.0],    // Green
-        ];
-        colorT = rainbowColors[0];
-        colorE = rainbowColors[1];
-        colorC = rainbowColors[2];
-        colorH = rainbowColors[3];
-    }
+
+  function applyRainbowColors() {
+    const rainbowColors = [
+      [1.0, 0.0, 0.0, 1.0], // Red
+      [1.0, 0.5, 0.0, 1.0], // Orange
+      [1.0, 1.0, 0.0, 1.0], // Yellow
+      [0.0, 1.0, 0.0, 1.0], // Green
+    ];
+    colorT = rainbowColors[0];
+    colorE = rainbowColors[1];
+    colorC = rainbowColors[2];
+    colorH = rainbowColors[3];
+  }
 
   // Helper: convert hex string "#rrggbb" to RGBA array [r,g,b,1]
   function hexToColor(hex) {
@@ -465,11 +557,14 @@ function setupUIEventListeners() {
 
   // Helper: convert RGBA array [r,g,b,a] to hex string "#rrggbb"
   function colorToHex(col) {
-    const toHex = (v) => Math.round(v * 255).toString(16).padStart(2, "0");
+    const toHex = (v) =>
+      Math.round(v * 255)
+        .toString(16)
+        .padStart(2, "0");
     return `#${toHex(col[0])}${toHex(col[1])}${toHex(col[2])}`;
   }
 
-    document.getElementById("bgColorPicker").addEventListener("input", (e) => {
+  document.getElementById("bgColorPicker").addEventListener("input", (e) => {
     const hex = e.target.value;
     bgColor = [
       parseInt(hex.substr(1, 2), 16) / 255,
@@ -484,7 +579,6 @@ function setupUIEventListeners() {
     startBtn.addEventListener("click", () => {
       isAnimating = !isAnimating;
       if (isAnimating) {
-        if (animSeq === 0) animSeq = 1;
         disableUI();
         startBtn.innerText = "Stop Animation";
       } else {
@@ -494,334 +588,234 @@ function setupUIEventListeners() {
     });
   }
 
-  if (translationXSlider) {
-    translationXSlider.addEventListener("input", (e) => {
-      if (animPath !== 5) return;
-      translationManualOverride = true;
-      translationOffset[0] = parseFloat(e.target.value);
-    });
-  }
-
-  if (translationYSlider) {
-    translationYSlider.addEventListener("input", (e) => {
-      if (animPath !== 5) return;
-      translationManualOverride = true;
-      translationOffset[1] = parseFloat(e.target.value);
-    });
-  }
-
   document.getElementById("resetBtn").addEventListener("click", () => {
     resetDefaults();
-    enableUI(); 
+    enableUI();
     refreshGeometryBuffers();
-    
   });
+
   document.getElementById("animPath").addEventListener("change", (e) => {
-    animPath = parseInt(e.target.value);
-    animSeq = 1;
+    animPath = parseInt(e.target.value, 10);
+
+    // reset animation state when switching sequence
     theta = [0, 0, 0];
-    if (animPath !== 4) {
-      scaleValue = 1;
-    }
-    if (animPath !== 5) {
-      translationOffset = [0, 0, 0];
-      translationManualOverride = false;
-      if (translationXSlider) translationXSlider.value = 0;
-      if (translationYSlider) translationYSlider.value = 0;
-      if (translationControl) translationControl.style.display = "none";
-      if (translationXSlider) translationXSlider.disabled = true;
-      if (translationYSlider) translationYSlider.disabled = true;
-    } else {
-      translationManualOverride = true;
-      if (translationControl) translationControl.style.display = "block";
-      if (translationXSlider) {
-        translationXSlider.disabled = false;
-        translationXSlider.value = translationOffset[0];
-      }
-      if (translationYSlider) {
-        translationYSlider.disabled = false;
-        translationYSlider.value = translationOffset[1];
-      }
-    }
-    refreshGeometryBuffers();
-});
+    scaleValue = 1;
+    translationOffset = [0, 0, 0];
+    translationVelocity = [0.02, 0.015];
+    masterStage = 1;
+    stageFrameCount = 0;
+  });
 }
 
 function resetDefaults() {
-  
-    isAnimating = false;
-    theta = [0, 0, 0];
-    animSeq = 1;
-    animPath = 1;
-    scaleValue = 1;
-    translationOffset = [0, 0, 0];
-    translationManualOverride = false;
+  isAnimating = false;
+  theta = [0, 0, 0];
+  animPath = 1;
+  masterStage = 1;
+  stageFrameCount = 0;
+  scaleDir = 1;
 
-    animationSpeed = defaultSpeed;
-    extrusionDepth = defaultDepth;
-    letterSpacing = defaultSpacing;
+  scaleValue = 1;
+  translationOffset = [0, 0, 0];
+  translationVelocity = [0.02, 0.015];
 
+  animationSpeed = defaultSpeed;
+  extrusionDepth = defaultDepth;
+  letterSpacing = defaultSpacing;
 
-    document.getElementById("animPath").value = 1;
-    document.getElementById("speedSlider").value = defaultSpeed;
-    document.getElementById("depthSlider").value = defaultDepth;
-    document.getElementById("spacingSlider").value = defaultSpacing;
-    if (startBtn) {
-      startBtn.innerText = "Start Animation";
-      startBtn.disabled = false;
-    }
-    if (translationControl) translationControl.style.display = "none";
-    if (translationXSlider) {
-      translationXSlider.value = 0;
-      translationXSlider.disabled = true;
-    }
-    if (translationYSlider) {
-      translationYSlider.value = 0;
-      translationYSlider.disabled = true;
-    }
+  document.getElementById("animPath").value = 1;
+  document.getElementById("speedSlider").value = defaultSpeed;
+  document.getElementById("depthSlider").value = defaultDepth;
+  document.getElementById("spacingSlider").value = defaultSpacing;
+  if (startBtn) {
+    startBtn.innerText = "Start Animation";
+    startBtn.disabled = false;
+  }
 }
 
+// -------------------------
+// MASTER ANIMATION (Sequence 1 & 2)
+// case 1..7 in here, order depends on sequence
+// -------------------------
 function aniUpdate() {
-  switch (animPath) {
-    case 1: // Default path
-        switch(animSeq){
+  if (animPath === 3) {
+    return; // sequence 3 reserved
+  }
 
-          case 1:
-            theta[1] += animationSpeed;
-            if (theta[1] >= 180) {
-              theta[1]= 180;
-              animSeq++;
-            }
-            break;
+  const currentStage = getCurrentStageNumber();
+  const rotationDir = animPath === 2 ? -1 : 1;
 
-          case 2:
-            theta[1] -= animationSpeed;
-            if (theta[1] <= 0) {
-              theta[1]= 0;
-              animSeq++;
-            }
-            break;
-
-          case 3:
-            theta[1] -= animationSpeed;
-            if (theta[1] <= -180) {
-              theta[1]= -180;
-              animSeq++;
-            }
-            break;
-
-          case 4:
-            theta[1] += animationSpeed;
-            if (theta[1] >= 0) {
-              theta[1]= 0;
-              animSeq++;
-            }
-            break;
-
-          case 5:
-            theta[1] += animationSpeed;
-            if (theta[1] >= 180) {
-              theta[1]= 180;
-              animSeq++;
-            }
-            break;
-
-          case 6:
-            theta[1] += animationSpeed; // slow left/right rotation
-        }
-        break;
-
-    case 2:
-      switch(animSeq){
-          case 1:
-            theta[0] += animationSpeed;
-            if (theta[0] >= 180) {
-              theta[0]= 180;
-              animSeq++;
-            }
-            break;
-
-          case 2:
-            theta[0] -= animationSpeed;
-            if (theta[0] <= 0) {
-              theta[0]= 0;
-              animSeq++;
-            }
-            break;
-
-          case 3:
-            theta[0] -= animationSpeed;
-            if (theta[0] <= -180) {
-              theta[0]= -180;
-              animSeq++;
-            }
-            break;
-
-          case 4:
-            theta[0] += animationSpeed;
-            if (theta[0] >= 0) {
-              theta[0]= 0;
-              animSeq++;
-            }
-            break;
-
-          case 5:
-            theta[0] += animationSpeed;
-            if (theta[0] >= 180) {
-              theta[0]= 180;
-              animSeq++;
-            }
-            break;
-
-          case 6:
-            theta[0] += animationSpeed; // slow left/right rotation
-        }
-        break;
-        
-    case 3:
-      switch(animSeq){
-          case 1:
-            theta[2] += animationSpeed;
-            if (theta[2] >= 180) {
-              theta[2]= 180;
-              animSeq++;
-            }
-            break;
-
-          case 2:
-            theta[2] -= animationSpeed;
-            if (theta[2] <= 0) {
-              theta[2]= 0;
-              animSeq++;
-            }
-            break;
-
-          case 3:
-            theta[2] -= animationSpeed;
-            if (theta[2] <= -180) {
-              theta[2]= -180;
-              animSeq++;
-            }
-            break;
-
-          case 4:
-            theta[2] += animationSpeed;
-            if (theta[2] >= 0) {
-              theta[2]= 0;
-              animSeq++;
-            }
-            break;
-
-          case 5:
-            theta[2] += animationSpeed;
-            if (theta[2] >= 180) {
-              theta[2]= 180;
-              animSeq++;
-            }
-            break;
-
-          case 6:
-            theta[2] += animationSpeed; // slow left/right rotation
-        }
-        break;
-    
-    case 4: {
-      const scaleStep = 0.005 * animationSpeed;
-      switch (animSeq) {
-        case 1:
-          scaleValue += scaleStep;
-          if (scaleValue >= scaleLimits.max) {
-            scaleValue = scaleLimits.max;
-            animSeq = 2;
-          }
-          break;
-        case 2:
-          scaleValue -= scaleStep;
-          if (scaleValue <= 1) {
-            scaleValue = 1;
-            animSeq = 3;
-          }
-          break;
-        case 3:
-          scaleValue -= scaleStep;
-          if (scaleValue <= scaleLimits.min) {
-            scaleValue = scaleLimits.min;
-            animSeq = 4;
-          }
-          break;
-        case 4:
-          scaleValue += scaleStep;
-          if (scaleValue >= 1) {
-            scaleValue = 1;
-            animSeq = 1;
-          }
-          break;
-        default:
-          animSeq = 1;
+  switch (currentStage) {
+    // 1) Rotate Y (full 360)
+    case 1: {
+      if (stageFrameCount === 0) {
+        theta = [0, 0, 0];
+      }
+      theta[1] += rotationDir * animationSpeed;
+      const completed =
+        (rotationDir > 0 && theta[1] >= 360) ||
+        (rotationDir < 0 && theta[1] <= -360);
+      if (completed) {
+        theta[1] = 0;
+        advanceStage();
       }
       break;
     }
 
+    // 2) Rotate X (full 360)
+    case 2: {
+      if (stageFrameCount === 0) {
+        theta = [0, 0, 0];
+      }
+      theta[0] += rotationDir * animationSpeed;
+      const completed =
+        (rotationDir > 0 && theta[0] >= 360) ||
+        (rotationDir < 0 && theta[0] <= -360);
+      if (completed) {
+        theta[0] = 0;
+        advanceStage();
+      }
+      break;
+    }
+
+    // 3) Rotate Z (full 360)
+    case 3: {
+      if (stageFrameCount === 0) {
+        theta = [0, 0, 0];
+      }
+      theta[2] += rotationDir * animationSpeed;
+      const completed =
+        (rotationDir > 0 && theta[2] >= 360) ||
+        (rotationDir < 0 && theta[2] <= -360);
+      if (completed) {
+        theta[2] = 0;
+        advanceStage();
+      }
+      break;
+    }
+
+    // 4) Pulsing scale: 1 -> max -> min (one pulse)
+    case 4: {
+      const step = 0.01 * animationSpeed;
+      if (stageFrameCount === 0) {
+        scaleValue = 1.0;
+        scaleDir = 1;
+      }
+
+      scaleValue += scaleDir * step;
+
+      if (scaleDir > 0 && scaleValue >= scaleLimits.max) {
+        scaleValue = scaleLimits.max;
+        scaleDir = -1;
+      } else if (scaleDir < 0 && scaleValue <= scaleLimits.min) {
+        scaleValue = scaleLimits.min;
+        // end of pulse
+        advanceStage();
+      }
+      break;
+    }
+
+    // 5) Enlarge scaling until hitting border (no outside)
     case 5: {
-      if (translationManualOverride) {
-        break;
+      const step = 0.01 * animationSpeed;
+      const maxScale = getMaxScaleToFit();
+
+      if (stageFrameCount === 0) {
+        // ensure we start from centered baseline before growing
+        translationOffset = [0, 0, 0];
+        scaleValue = Math.max(1.0, scaleValue);
       }
-      const moveStep = translationStepMultiplier * animationSpeed;
-      switch (animSeq) {
-        case 1:
-          translationOffset[0] += moveStep;
-          if (translationOffset[0] >= translationLimit) {
-            translationOffset[0] = translationLimit;
-            animSeq = 2;
-          }
-          break;
-        case 2:
-          translationOffset[0] -= moveStep;
-          if (translationOffset[0] <= 0) {
-            translationOffset[0] = 0;
-            animSeq = 3;
-          }
-          break;
-        case 3:
-          translationOffset[0] -= moveStep;
-          if (translationOffset[0] <= -translationLimit) {
-            translationOffset[0] = -translationLimit;
-            animSeq = 4;
-          }
-          break;
-        case 4:
-          translationOffset[0] += moveStep;
-          if (translationOffset[0] >= 0) {
-            translationOffset[0] = 0;
-            animSeq = 5;
-          }
-          break;
-        case 5:
-          translationOffset[1] += moveStep;
-          if (translationOffset[1] >= translationLimit * 0.7) {
-            translationOffset[1] = translationLimit * 0.7;
-            animSeq = 6;
-          }
-          break;
-        case 6:
-          translationOffset[1] -= moveStep;
-          if (translationOffset[1] <= 0) {
-            translationOffset[1] = 0;
-            animSeq = 1;
-          }
-          break;
-        default:
-          animSeq = 1;
+
+      if (scaleValue < maxScale) {
+        scaleValue += step;
+        if (scaleValue >= maxScale) {
+          scaleValue = maxScale;
+          advanceStage();
+        }
+      } else {
+        // already at or beyond max
+        scaleValue = maxScale;
+        advanceStage();
       }
+      break;
+    }
+
+    // 6) Diminish scaling back to original size (center)
+    case 6: {
+      const step = 0.01 * animationSpeed;
+      // gently bring translation back to center each frame
+      translationOffset[0] *= 0.9;
+      translationOffset[1] *= 0.9;
+
+      if (scaleValue > 1.0) {
+        scaleValue -= step;
+        if (scaleValue <= 1.0) {
+          scaleValue = 1.0;
+          advanceStage();
+        }
+      } else {
+        scaleValue = 1.0;
+        advanceStage();
+      }
+      break;
+    }
+
+    // 7) Move around within screen bounds
+    case 7: {
+      if (stageFrameCount === 0) {
+        scaleValue = 1.0;
+        translationOffset = [0, 0, 0];
+        translationVelocity = [0.02, 0.015];
+      }
+
+      const aspect = canvas.width / canvas.height;
+      const orthoHalfWidth = 3 * aspect;
+      const orthoHalfHeight = 3;
+
+      const halfWordWidth = getTotalWordWidth() / 2;
+      const halfWordHeight = TECH_HEIGHT / 2;
+
+      const maxX = Math.max(0, orthoHalfWidth - halfWordWidth);
+      const maxY = Math.max(0, orthoHalfHeight - halfWordHeight);
+
+      translationOffset[0] += translationVelocity[0] * animationSpeed;
+      translationOffset[1] += translationVelocity[1] * animationSpeed;
+
+      // bounce at borders
+      if (translationOffset[0] > maxX) {
+        translationOffset[0] = maxX;
+        translationVelocity[0] *= -1;
+      } else if (translationOffset[0] < -maxX) {
+        translationOffset[0] = -maxX;
+        translationVelocity[0] *= -1;
+      }
+
+      if (translationOffset[1] > maxY) {
+        translationOffset[1] = maxY;
+        translationVelocity[1] *= -1;
+      } else if (translationOffset[1] < -maxY) {
+        translationOffset[1] = -maxY;
+        translationVelocity[1] *= -1;
+      }
+
+      // let translation stage run for some time, then loop back to stage 1
+      const MAX_FRAMES = 600; // ~10 seconds at 60fps
+      if (stageFrameCount > MAX_FRAMES) {
+        resetTranslationToCenter();
+        advanceStage(); // goes to 1 (via advanceStage logic)
+      }
+
       break;
     }
   }
+
+  stageFrameCount++;
 }
+
 // -------------------------
 // RENDER LOOP
 // -------------------------
-function disableUI()
-{
+function disableUI() {
   document.getElementById("depthSlider").disabled = true;
   document.getElementById("speedSlider").disabled = true;
   document.getElementById("spacingSlider").disabled = true;
@@ -833,8 +827,7 @@ function disableUI()
   document.getElementById("animPath").disabled = true;
 }
 
-function enableUI()
-{
+function enableUI() {
   document.getElementById("depthSlider").disabled = false;
   document.getElementById("speedSlider").disabled = false;
   document.getElementById("spacingSlider").disabled = false;
@@ -848,16 +841,27 @@ function enableUI()
 
 function render() {
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  if (isAnimating) aniUpdate();
 
-  // Use orthographic projection instead of perspective
+  if (isAnimating) {
+    aniUpdate();
+    clampTranslation(); // always keep in bounds
+  }
+
+  // orthographic projection
   const aspect = canvas.width / canvas.height;
-  projectionMatrix = ortho(-2.5 * aspect, 2.5 * aspect, -2.5, 2.5, -10, 10);
+  projectionMatrix = ortho(-3 * aspect, 3 * aspect, -3, 3, -10, 10);
   gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
 
-  // Model-view matrix with rotations
+  // Model-view matrix: translation -> scale -> rotations
   modelViewMatrix = mat4();
-  modelViewMatrix = mult(modelViewMatrix, translate(0, 0, 0));
+  modelViewMatrix = mult(
+    modelViewMatrix,
+    translate(translationOffset[0], translationOffset[1], translationOffset[2])
+  );
+  modelViewMatrix = mult(
+    modelViewMatrix,
+    scalem(scaleValue, scaleValue, scaleValue)
+  );
   modelViewMatrix = mult(modelViewMatrix, rotateX(theta[0]));
   modelViewMatrix = mult(modelViewMatrix, rotateY(theta[1]));
   modelViewMatrix = mult(modelViewMatrix, rotateZ(theta[2]));
