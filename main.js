@@ -849,7 +849,7 @@ function render() {
 
   // orthographic projection
   const aspect = canvas.width / canvas.height;
-  projectionMatrix = ortho(-3 * aspect, 3 * aspect, -3, 3, -10, 10);
+  projectionMatrix = ortho(-2.5 * aspect, 2.5 * aspect, -2.5, 2.5, -10, 10);
   gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
 
   // Model-view matrix: translation -> scale -> rotations
