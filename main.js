@@ -1,6 +1,11 @@
 "use strict";
 
 // -------------------------
+// GLOBAL CONSTANTS
+// -------------------------
+const ORTHO_HALF_HEIGHT = 2.5; // must match the values used in render()
+
+// -------------------------
 // GLOBAL VARIABLES
 // -------------------------
 let gl;
@@ -55,7 +60,7 @@ const defaultColorC = colorC.slice();
 const defaultColorH = colorH.slice();
 
 // Word geometry helpers
-const TECH_HEIGHT = 1.0; // you use "height = 1.0" in buildTECH()
+const TECH_HEIGHT = 1.0; // "height = 1.0" in buildTECH()
 
 function getTotalWordWidth() {
   const letterWidth = 0.8;
@@ -68,9 +73,8 @@ function getTotalWordWidth() {
 function getMaxScaleToFit() {
   const aspect = canvas.width / canvas.height;
 
-  // from ortho(-3*aspect, 3*aspect, -3, 3, -10, 10)
-  const orthoHalfWidth = 3 * aspect;
-  const orthoHalfHeight = 3;
+  const orthoHalfHeight = ORTHO_HALF_HEIGHT;
+  const orthoHalfWidth = ORTHO_HALF_HEIGHT * aspect;
 
   const halfWordWidth = getTotalWordWidth() / 2;
   const halfWordHeight = TECH_HEIGHT / 2;
@@ -85,8 +89,8 @@ function getMaxScaleToFit() {
 function clampTranslation() {
   const aspect = canvas.width / canvas.height;
 
-  const orthoHalfWidth = 3 * aspect;
-  const orthoHalfHeight = 3;
+  const orthoHalfHeight = ORTHO_HALF_HEIGHT;
+  const orthoHalfWidth = ORTHO_HALF_HEIGHT * aspect;
 
   const halfWordWidth = (getTotalWordWidth() * scaleValue) / 2;
   const halfWordHeight = (TECH_HEIGHT * scaleValue) / 2;
@@ -596,11 +600,16 @@ function resetDefaults() {
   }
 }
 
+// -------------------------
+// MASTER ANIMATION (Sequence 1)
+// case 1..7 in here
+// -------------------------
 function aniUpdate() {
   // Only animation sequence 1 is active now
   if (animPath !== 1) return;
 
   switch (animSeq) {
+    // 1–4: rotation around Y axis
     case 1:
       theta[1] += animationSpeed;
       if (theta[1] >= 180) {
@@ -655,12 +664,14 @@ function aniUpdate() {
         scaleValue += step;
         if (scaleValue >= maxScale) {
           scaleValue = maxScale;
+          clampTranslation(); // ensure within bounds
           animSeq++;
           if (animSeq > 7) animSeq = 1;
           stageFrameCount = 0;
         }
       } else {
         scaleValue = maxScale;
+        clampTranslation();
         animSeq++;
         if (animSeq > 7) animSeq = 1;
         stageFrameCount = 0;
@@ -700,8 +711,8 @@ function aniUpdate() {
       }
 
       const aspect = canvas.width / canvas.height;
-      const orthoHalfWidth = 3 * aspect;
-      const orthoHalfHeight = 3;
+      const orthoHalfHeight = ORTHO_HALF_HEIGHT;
+      const orthoHalfWidth = ORTHO_HALF_HEIGHT * aspect;
 
       const halfWordWidth = getTotalWordWidth() / 2;
       const halfWordHeight = TECH_HEIGHT / 2;
@@ -729,8 +740,10 @@ function aniUpdate() {
         translationVelocity[1] *= -1;
       }
 
+      clampTranslation(); // final guard against precision drift
+
       // let translation stage run for some time, then loop back to stage 1
-      const MAX_FRAMES = 600; // ~10 seconds at 60fps
+      const MAX_FRAMES = 600; // ~10 seconds at ~60fps
       if (stageFrameCount > MAX_FRAMES) {
         translationOffset = [0, 0, 0];
         translationVelocity = [0.02, 0.015];
@@ -780,9 +793,16 @@ function render() {
     clampTranslation(); // always keep in bounds
   }
 
-  // orthographic projection
+  // orthographic projection (MUST match ORTHO_HALF_HEIGHT)
   const aspect = canvas.width / canvas.height;
-  projectionMatrix = ortho(-2.5 * aspect, 2.5 * aspect, -2.5, 2.5, -10, 10);
+  projectionMatrix = ortho(
+    -ORTHO_HALF_HEIGHT * aspect,
+     ORTHO_HALF_HEIGHT * aspect,
+    -ORTHO_HALF_HEIGHT,
+     ORTHO_HALF_HEIGHT,
+    -10,
+    10
+  );
   gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
 
   // Model-view matrix: translation -> scale -> rotations
