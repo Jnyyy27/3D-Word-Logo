@@ -1,46 +1,43 @@
 "use strict";
 
-// -------------------------
+// ----------------------------------------------------------------------------
 // GLOBAL CONSTANTS
-// -------------------------
+// ----------------------------------------------------------------------------
 const ORTHO_HALF_HEIGHT = 2.5; // must match the values used in render()
+const defaultSpeed = 0.5;
+const defaultDepth = 0.3;
+const defaultSpacing = 0.2;
+const TECH_HEIGHT = 1.0; // "height = 1.0" in buildTECH()
 
-// -------------------------
+
+// ----------------------------------------------------------------------------
 // GLOBAL VARIABLES
-// -------------------------
+// ----------------------------------------------------------------------------
+// WebGL context and Geometry
 let gl;
 let canvas;
 let points = [];
 let colors = [];
-let normals = [];
+let vBuffer, cBuffer;
 
+// Matrices
 let modelViewMatrix, projectionMatrix;
 let modelViewMatrixLoc, projectionMatrixLoc;
 
-// rotation (Euler angles)
+// Animation state
 let theta = [0, 0, 0]; // [x, y, z]
-
-// animation control
+let translationOffset = [0, 0, 0];
+let translationVelocity = [0.02, 0.015];
 let isAnimating = false;
-let animPath = 1;   // 1 = animation seq 1, 2 = reverse of seq 1
+let animPath = 1;   // 1 = original, 2 = reverse, 3 = playground
 let animSeq = 1;    // 1..7 inside animation sequence
 let stageFrameCount = 0; // counts frames in current stage
+let scaleValue = 1;
 
-const defaultSpeed = 0.5;
-const defaultDepth = 0.3;
-const defaultSpacing = 0.2;
-
+// Control parameters
 let animationSpeed = defaultSpeed;
 let extrusionDepth = defaultDepth;
 let letterSpacing = defaultSpacing;
-
-// scaling
-let scaleValue = 1;
-const scaleLimits = { min: 0.7, max: 1.4 };
-
-// translation
-let translationOffset = [0, 0, 0];
-let translationVelocity = [0.02, 0.015];
 
 // UI elements
 let startBtn;
@@ -61,9 +58,10 @@ const defaultColorH = colorH.slice();
 // Remember the default single-color picker hex so Reset can restore it
 let defaultSingleColorHex = null;
 
-// Word geometry helpers
-const TECH_HEIGHT = 1.0; // "height = 1.0" in buildTECH()
 
+// ----------------------------------------------------------------------------
+// Centralized function
+// ----------------------------------------------------------------------------
 function getTotalWordWidth() {
   const letterWidth = 0.8;
   const gap = letterSpacing;
@@ -87,24 +85,9 @@ function getMaxScaleToFit() {
   return Math.min(maxScaleX, maxScaleY);
 }
 
-// Clamp translation so the scaled word never goes outside the screen
-function clampTranslation() {
-  const aspect = canvas.width / canvas.height;
-
-  const orthoHalfHeight = ORTHO_HALF_HEIGHT;
-  const orthoHalfWidth = ORTHO_HALF_HEIGHT * aspect;
-
-  const halfWordWidth = (getTotalWordWidth() * scaleValue) / 2;
-  const halfWordHeight = (TECH_HEIGHT * scaleValue) / 2;
-
-  const maxX = Math.max(0, orthoHalfWidth - halfWordWidth);
-  const maxY = Math.max(0, orthoHalfHeight - halfWordHeight);
-
-  translationOffset[0] = Math.min(maxX, Math.max(-maxX, translationOffset[0]));
-  translationOffset[1] = Math.min(maxY, Math.max(-maxY, translationOffset[1]));
-}
-
+// ----------------------------------------------------------------------------
 // Simple scale matrix helper (MV.js lacks scalem)
+// ----------------------------------------------------------------------------
 function scalem(x, y, z) {
   const result = mat4();
   result[0][0] = x;
@@ -113,9 +96,9 @@ function scalem(x, y, z) {
   return result;
 }
 
-// -------------------------
+// ----------------------------------------------------------------------------
 // BOX HELPER - EACH FACE GETS DIFFERENT COLOR
-// -------------------------
+// ----------------------------------------------------------------------------
 function createBox(x, y, z, w, h, d, baseColor) {
   const vertices = [
     vec4(x, y, z, 1.0),
@@ -195,9 +178,9 @@ function createBox(x, y, z, w, h, d, baseColor) {
   }
 }
 
-// -------------------------
+// ----------------------------------------------------------------------------
 // BUILD 3D TECH LETTERS
-// -------------------------
+// ----------------------------------------------------------------------------
 function buildTECH() {
   points = [];
   colors = [];
@@ -295,20 +278,23 @@ function buildTECH() {
   );
 }
 
-// -------------------------
+// ----------------------------------------------------------------------------
 // INITIALIZE WEBGL
-// -------------------------
-let vBuffer, cBuffer;
-
+// ----------------------------------------------------------------------------
 window.onload = function init() {
   getUIElement();
   configWebGL();
   render();
 };
 
+// ----------------------------------------------------------------------------
+// GET UI ELEMENTS AND SETUP EVENT LISTENERS
+// ----------------------------------------------------------------------------
 function getUIElement() {
+
   canvas = document.getElementById("gl-canvas");
   startBtn = document.getElementById("startBtn");
+
   function populateMinMax(id) {
     try {
       const input = document.getElementById(id);
@@ -323,153 +309,7 @@ function getUIElement() {
   populateMinMax("depthSlider");
   populateMinMax("speedSlider");
 
-  // Capture the default single color hex so Reset can restore it later
-  try {
-    const single = document.getElementById("singleColorPicker");
-    if (single) defaultSingleColorHex = single.value;
-  } catch (err) {}
-
-  window.addEventListener("keydown", (event) => {
-    if (animPath === 1 || animPath === 2) {
-      // only active in animation sequence 1
-      if (isAnimating) return;
-
-      const key = event.key.toLowerCase();
-      switch (key) {
-        case "arrowup":
-          animationSpeed = Math.min(animationSpeed + 0.1, 5);
-          speedSlider.value = animationSpeed;
-          break;
-
-        case "arrowdown":
-          animationSpeed = Math.max(animationSpeed - 0.1, 0);
-          speedSlider.value = animationSpeed;
-          break;
-
-        case "arrowright":
-          extrusionDepth = Math.min(extrusionDepth + 0.05, 1);
-          depthSlider.value = extrusionDepth;
-          break;
-        case "arrowleft":
-          extrusionDepth = Math.max(extrusionDepth - 0.05, 0.1);
-          depthSlider.value = extrusionDepth;
-          break;
-
-        case "1":
-          if (colorMode !== "per-letter") break;
-          colorT = randomColor();
-          refreshGeometryBuffers();
-          try {
-            document.getElementById("colorPickerT").value = colorToHex(colorT);
-          } catch {}
-          break;
-
-        case "2":
-          if (colorMode !== "per-letter") break;
-          colorE = randomColor();
-          refreshGeometryBuffers();
-          try {
-            document.getElementById("colorPickerE").value = colorToHex(colorE);
-          } catch {}
-          break;
-
-        case "3":
-          if (colorMode !== "per-letter") break;
-          colorC = randomColor();
-          refreshGeometryBuffers();
-          try {
-            document.getElementById("colorPickerC").value = colorToHex(colorC);
-          } catch {}
-          break;
-
-        case "4":
-          if (colorMode !== "per-letter") break;
-          colorH = randomColor();
-          refreshGeometryBuffers();
-          try {
-            document.getElementById("colorPickerH").value = colorToHex(colorH);
-          } catch {}
-          break;
-
-        case " ": // spacebar → start/stop
-          isAnimating = !isAnimating;
-          if (startBtn)
-            startBtn.innerText = isAnimating
-              ? "Stop Animation"
-              : "Start Animation";
-          break;
-
-        case "+": // Increase letter spacing
-          letterSpacing += 0.05;
-          letterSpacing = Math.min(letterSpacing, 1.0); // clamp max
-          document.getElementById("spacingSlider").value = letterSpacing;
-          refreshGeometryBuffers();
-          break;
-
-        case "-": // Decrease letter spacing
-          letterSpacing -= 0.05;
-          letterSpacing = Math.max(letterSpacing, 0.05); // clamp min
-          refreshGeometryBuffers();
-          break;
-        case "r":
-          resetDefaults();
-          refreshGeometryBuffers();
-          break;
-      }
-    } else if (animPath == 3) {
-      // Playground mode - no animation sequences
-      const key = event.key.toLowerCase();
-      switch (key) {
-        case "arrowleft":
-          theta[1] -= 5; // rotate Y left
-          break;
-
-        case "arrowright":
-          theta[1] += 5; // rotate Y right
-          break;
-
-        case "arrowup":
-          theta[0] -= 5; // rotate X up
-          break;
-
-        case "arrowdown":
-          theta[0] += 5; // rotate X down
-          break;
-
-        case "a":
-          translationOffset[0] -= 0.1;
-          break;
-
-        case "d":
-          translationOffset[0] += 0.1;
-          break;
-
-        case "w":
-          translationOffset[1] += 0.1;
-          break;
-
-        case "s":
-          translationOffset[1] -= 0.1;
-          break;
-
-        case "+":
-        case "=":
-          scaleValue *= 1.05; // zoom in
-          break;
-
-        case "-":
-          scaleValue *= 0.95; // zoom out
-          break;
-
-        case "r":
-          resetDefaults();
-          refreshGeometryBuffers();
-          break;
-      }
-    }
-  });
-
-  document.getElementById("depthSlider").addEventListener("input", (e) => {
+    document.getElementById("depthSlider").addEventListener("input", (e) => {
     extrusionDepth = parseFloat(e.target.value);
     refreshGeometryBuffers();
   });
@@ -527,23 +367,13 @@ function getUIElement() {
     refreshGeometryBuffers();
   });
 
-  const animPathSelect = document.getElementById("animPath");
-  const defaultKeys = document.getElementById("defaultKeys");
-  const playgroundKeys = document.getElementById("playgroundKeys");
+  // Capture the default single color hex so Reset can restore it later
+  try {
+    const single = document.getElementById("singleColorPicker");
+    if (single) defaultSingleColorHex = single.value;
+  } catch (err) {}
 
-  animPathSelect.addEventListener("change", () => {
-    animPath = parseInt(animPathSelect.value, 10);
-
-    if (animPath === 3) {
-      defaultKeys.style.display = "none";
-      playgroundKeys.style.display = "block";
-    } else {
-      playgroundKeys.style.display = "none";
-      defaultKeys.style.display = "block";
-    }
-  });
-
-  document.getElementById("colorMode").addEventListener("change", (e) => {
+    document.getElementById("colorMode").addEventListener("change", (e) => {
     const prevMode = colorMode;
     colorMode = e.target.value;
 
@@ -698,8 +528,167 @@ function getUIElement() {
     // start from stage 1 for both paths
     animSeq = 1;
   });
+
+  window.addEventListener("keydown", (event) => {
+    if (animPath === 1 || animPath === 2) {
+      // only active in animation sequence 1
+      if (isAnimating) return;
+
+      const key = event.key.toLowerCase();
+      switch (key) {
+        case "arrowup":
+          animationSpeed = Math.min(animationSpeed + 0.1, 5);
+          speedSlider.value = animationSpeed;
+          break;
+
+        case "arrowdown":
+          animationSpeed = Math.max(animationSpeed - 0.1, 0);
+          speedSlider.value = animationSpeed;
+          break;
+
+        case "arrowright":
+          extrusionDepth = Math.min(extrusionDepth + 0.05, 1);
+          depthSlider.value = extrusionDepth;
+          break;
+        case "arrowleft":
+          extrusionDepth = Math.max(extrusionDepth - 0.05, 0.1);
+          depthSlider.value = extrusionDepth;
+          break;
+
+        case "1":
+          if (colorMode !== "per-letter") break;
+          colorT = randomColor();
+          refreshGeometryBuffers();
+          try {
+            document.getElementById("colorPickerT").value = colorToHex(colorT);
+          } catch {}
+          break;
+
+        case "2":
+          if (colorMode !== "per-letter") break;
+          colorE = randomColor();
+          refreshGeometryBuffers();
+          try {
+            document.getElementById("colorPickerE").value = colorToHex(colorE);
+          } catch {}
+          break;
+
+        case "3":
+          if (colorMode !== "per-letter") break;
+          colorC = randomColor();
+          refreshGeometryBuffers();
+          try {
+            document.getElementById("colorPickerC").value = colorToHex(colorC);
+          } catch {}
+          break;
+
+        case "4":
+          if (colorMode !== "per-letter") break;
+          colorH = randomColor();
+          refreshGeometryBuffers();
+          try {
+            document.getElementById("colorPickerH").value = colorToHex(colorH);
+          } catch {}
+          break;
+
+        case " ": // spacebar → start/stop
+          isAnimating = !isAnimating;
+          if (startBtn)
+            startBtn.innerText = isAnimating
+              ? "Stop Animation"
+              : "Start Animation";
+          break;
+
+        case "+": // Increase letter spacing
+          letterSpacing += 0.05;
+          letterSpacing = Math.min(letterSpacing, 1.0); // clamp max
+          document.getElementById("spacingSlider").value = letterSpacing;
+          refreshGeometryBuffers();
+          break;
+
+        case "-": // Decrease letter spacing
+          letterSpacing -= 0.05;
+          letterSpacing = Math.max(letterSpacing, 0.05); // clamp min
+          refreshGeometryBuffers();
+          break;
+        case "r":
+          resetDefaults();
+          refreshGeometryBuffers();
+          break;
+      }
+
+    } else if (animPath == 3) {
+      // Playground mode - no animation sequences
+      const key = event.key.toLowerCase();
+      switch (key) {
+        case "arrowleft":
+          theta[1] -= 5; // rotate Y left
+          break;
+
+        case "arrowright":
+          theta[1] += 5; // rotate Y right
+          break;
+
+        case "arrowup":
+          theta[0] -= 5; // rotate X up
+          break;
+
+        case "arrowdown":
+          theta[0] += 5; // rotate X down
+          break;
+
+        case "a":
+          translationOffset[0] -= 0.1;
+          break;
+
+        case "d":
+          translationOffset[0] += 0.1;
+          break;
+
+        case "w":
+          translationOffset[1] += 0.1;
+          break;
+
+        case "s":
+          translationOffset[1] -= 0.1;
+          break;
+
+        case "+":
+          scaleValue *= 1.05; // zoom in
+          break;
+
+        case "-":
+          scaleValue *= 0.95; // zoom out
+          break;
+
+        case "r":
+          resetDefaults();
+          refreshGeometryBuffers();
+          break;
+      }
+    }
+  });
+
+  const animPathSelect = document.getElementById("animPath");
+  const defaultKeys = document.getElementById("defaultKeys");
+  const playgroundKeys = document.getElementById("playgroundKeys");
+
+  animPathSelect.addEventListener("change", () => {
+    animPath = parseInt(animPathSelect.value, 10);
+
+    if (animPath === 3) {
+      defaultKeys.style.display = "none";
+      playgroundKeys.style.display = "block";
+    } else {
+      playgroundKeys.style.display = "none";
+      defaultKeys.style.display = "block";
+    }
+  });
 }
 
+// ----------------------------------------------------------------------------
+// CONFIGURE WEBGL
+// ----------------------------------------------------------------------------
 function configWebGL() {
   gl = WebGLUtils.setupWebGL(canvas);
 
@@ -740,6 +729,9 @@ function configWebGL() {
   projectionMatrixLoc = gl.getUniformLocation(program, "projectionMatrix");
 }
 
+// ----------------------------------------------------------------------------
+// REFRESH GEOMETRY BUFFERS
+// ----------------------------------------------------------------------------
 function refreshGeometryBuffers() {
   buildTECH();
   gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
@@ -748,10 +740,16 @@ function refreshGeometryBuffers() {
   gl.bufferData(gl.ARRAY_BUFFER, flatten(colors), gl.STATIC_DRAW);
 }
 
+// ----------------------------------------------------------------------------
+// RANDOM COLOR
+// ----------------------------------------------------------------------------
 function randomColor() {
   return [Math.random(), Math.random(), Math.random(), 1.0];
 }  
 
+// ----------------------------------------------------------------------------
+// RESET TO DEFAULTS
+// ----------------------------------------------------------------------------
 function resetDefaults() {
   isAnimating = false;
   theta = [0, 0, 0];
@@ -762,6 +760,8 @@ function resetDefaults() {
   scaleValue = 1;
   translationOffset = [0, 0, 0];
   translationVelocity = [0.02, 0.015];
+  defaultKeys.style.display = "block";
+  playgroundKeys.style.display = "none";
 
   animationSpeed = defaultSpeed;
   extrusionDepth = defaultDepth;
@@ -831,12 +831,30 @@ function resetDefaults() {
   }
 }
 
-// -------------------------
+// ----------------------------------------------------------------------------
+// Clamp translation so the scaled word never goes outside the screen
+// ----------------------------------------------------------------------------
+function clampTranslation() {
+  const aspect = canvas.width / canvas.height;
+
+  const orthoHalfHeight = ORTHO_HALF_HEIGHT;
+  const orthoHalfWidth = ORTHO_HALF_HEIGHT * aspect;
+
+  const halfWordWidth = (getTotalWordWidth() * scaleValue) / 2;
+  const halfWordHeight = (TECH_HEIGHT * scaleValue) / 2;
+
+  const maxX = Math.max(0, orthoHalfWidth - halfWordWidth);
+  const maxY = Math.max(0, orthoHalfHeight - halfWordHeight);
+
+  translationOffset[0] = Math.min(maxX, Math.max(-maxX, translationOffset[0]));
+  translationOffset[1] = Math.min(maxY, Math.max(-maxY, translationOffset[1]));
+}
+
+// ----------------------------------------------------------------------------
 // MASTER ANIMATION
 // animPath 1: original (cases 1–7)
 // animPath 2: reverse version of sequence 1
-// -------------------------
-
+// ----------------------------------------------------------------------------
 function aniUpdate() {
   // ==========================================
   // SEQUENCE 1: Rotate -> Scale -> Bounce
@@ -1101,9 +1119,9 @@ function handleBouncing() {
   }
 }
 
-// -------------------------
-// RENDER LOOP
-// -------------------------
+// ----------------------------------------------------------------------------
+// DISABLE / ENABLE UI CONTROLS
+// ----------------------------------------------------------------------------
 function disableUI() {
   document.getElementById("depthSlider").disabled = true;
   document.getElementById("speedSlider").disabled = true;
@@ -1132,6 +1150,9 @@ function enableUI() {
   document.getElementById("colorMode").disabled = false;
 }
 
+// ----------------------------------------------------------------------------
+// RENDER LOOP
+// ----------------------------------------------------------------------------
 function render() {
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
