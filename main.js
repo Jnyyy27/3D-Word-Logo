@@ -309,66 +309,6 @@ window.onload = function init() {
 function getUIElement() {
   canvas = document.getElementById("gl-canvas");
   startBtn = document.getElementById("startBtn");
-}
-
-function configWebGL() {
-  gl = WebGLUtils.setupWebGL(canvas);
-
-  if (!gl) {
-    alert("WebGL isn't available");
-    return;
-  }
-
-  gl.viewport(0, 0, canvas.width, canvas.height);
-  gl.clearColor(bgColor[0], bgColor[1], bgColor[2], bgColor[3]);
-  gl.enable(gl.DEPTH_TEST);
-
-  buildTECH();
-
-  const program = initShaders(gl, "vertex-shader", "fragment-shader");
-  gl.useProgram(program);
-
-  // VERTEX BUFFER
-  vBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, flatten(points), gl.STATIC_DRAW);
-
-  const vPos = gl.getAttribLocation(program, "vPosition");
-  gl.vertexAttribPointer(vPos, 4, gl.FLOAT, false, 0, 0);
-  gl.enableVertexAttribArray(vPos);
-
-  // COLOR BUFFER
-  cBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, flatten(colors), gl.STATIC_DRAW);
-
-  const vCol = gl.getAttribLocation(program, "vColor");
-  gl.vertexAttribPointer(vCol, 4, gl.FLOAT, false, 0, 0);
-  gl.enableVertexAttribArray(vCol);
-
-  // MATRICES
-  modelViewMatrixLoc = gl.getUniformLocation(program, "modelViewMatrix");
-  projectionMatrixLoc = gl.getUniformLocation(program, "projectionMatrix");
-
-  setupUIEventListeners();
-}
-
-function refreshGeometryBuffers() {
-  buildTECH();
-  gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, flatten(points), gl.STATIC_DRAW);
-  gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, flatten(colors), gl.STATIC_DRAW);
-}
-
-function randomColor() {
-  return [Math.random(), Math.random(), Math.random(), 1.0];
-}
-
-// -------------------------
-// UI SETUP
-// -------------------------
-function setupUIEventListeners() {
   function populateMinMax(id) {
     try {
       const input = document.getElementById(id);
@@ -389,75 +329,97 @@ function setupUIEventListeners() {
     if (single) defaultSingleColorHex = single.value;
   } catch (err) {}
 
-window.addEventListener("keydown", (event) => {
-    if (animPath === 1 || animPath === 2) { // only active in animation sequence 1
+  window.addEventListener("keydown", (event) => {
+    if (animPath === 1 || animPath === 2) {
+      // only active in animation sequence 1
       if (isAnimating) return;
 
       const key = event.key.toLowerCase();
-          switch(key){
-              case "arrowup": animationSpeed = Math.min(animationSpeed + 0.1, 5); speedSlider.value = animationSpeed; break;
+      switch (key) {
+        case "arrowup":
+          animationSpeed = Math.min(animationSpeed + 0.1, 5);
+          speedSlider.value = animationSpeed;
+          break;
 
-              case "arrowdown": animationSpeed = Math.max(animationSpeed - 0.1, 0); speedSlider.value = animationSpeed; break;
+        case "arrowdown":
+          animationSpeed = Math.max(animationSpeed - 0.1, 0);
+          speedSlider.value = animationSpeed;
+          break;
 
-              case "arrowright": extrusionDepth = Math.min(extrusionDepth + 0.05, 1); depthSlider.value = extrusionDepth; break;
-              case "arrowleft": extrusionDepth = Math.max(extrusionDepth - 0.05, 0.1); depthSlider.value = extrusionDepth; break;
+        case "arrowright":
+          extrusionDepth = Math.min(extrusionDepth + 0.05, 1);
+          depthSlider.value = extrusionDepth;
+          break;
+        case "arrowleft":
+          extrusionDepth = Math.max(extrusionDepth - 0.05, 0.1);
+          depthSlider.value = extrusionDepth;
+          break;
 
-              case "1":
-                if(colorMode !== "per-letter") break;
-                colorT = randomColor();
-                refreshGeometryBuffers();
-                try { document.getElementById("colorPickerT").value = colorToHex(colorT); } catch {}
-                break;
+        case "1":
+          if (colorMode !== "per-letter") break;
+          colorT = randomColor();
+          refreshGeometryBuffers();
+          try {
+            document.getElementById("colorPickerT").value = colorToHex(colorT);
+          } catch {}
+          break;
 
-              case "2":
-                if(colorMode !== "per-letter") break;
-                colorE = randomColor();
-                refreshGeometryBuffers();
-                try { document.getElementById("colorPickerE").value = colorToHex(colorE); } catch {}
-                break;
+        case "2":
+          if (colorMode !== "per-letter") break;
+          colorE = randomColor();
+          refreshGeometryBuffers();
+          try {
+            document.getElementById("colorPickerE").value = colorToHex(colorE);
+          } catch {}
+          break;
 
-              case "3":
-                if(colorMode !== "per-letter") break;
-                colorC = randomColor();
-                refreshGeometryBuffers();
-                try { document.getElementById("colorPickerC").value = colorToHex(colorC); } catch {}
-                break;
+        case "3":
+          if (colorMode !== "per-letter") break;
+          colorC = randomColor();
+          refreshGeometryBuffers();
+          try {
+            document.getElementById("colorPickerC").value = colorToHex(colorC);
+          } catch {}
+          break;
 
-              case "4":
-                if(colorMode !== "per-letter") break;
-                colorH = randomColor();
-                refreshGeometryBuffers();
-                try { document.getElementById("colorPickerH").value = colorToHex(colorH); } catch {}
-                break;
+        case "4":
+          if (colorMode !== "per-letter") break;
+          colorH = randomColor();
+          refreshGeometryBuffers();
+          try {
+            document.getElementById("colorPickerH").value = colorToHex(colorH);
+          } catch {}
+          break;
 
-              case " ": // spacebar → start/stop
-                isAnimating = !isAnimating;
-                if (startBtn) startBtn.innerText = isAnimating ? "Stop Animation" : "Start Animation";
-                break;
+        case " ": // spacebar → start/stop
+          isAnimating = !isAnimating;
+          if (startBtn)
+            startBtn.innerText = isAnimating
+              ? "Stop Animation"
+              : "Start Animation";
+          break;
 
-              case "+": // Increase letter spacing
-                  letterSpacing += 0.05;
-                  letterSpacing = Math.min(letterSpacing, 1.0); // clamp max
-                  document.getElementById("spacingSlider").value = letterSpacing;
-                  refreshGeometryBuffers();
-                  break;
+        case "+": // Increase letter spacing
+          letterSpacing += 0.05;
+          letterSpacing = Math.min(letterSpacing, 1.0); // clamp max
+          document.getElementById("spacingSlider").value = letterSpacing;
+          refreshGeometryBuffers();
+          break;
 
-              case "-": // Decrease letter spacing
-                  letterSpacing -= 0.05;
-                  letterSpacing = Math.max(letterSpacing, 0.05); // clamp min
-                  refreshGeometryBuffers();
-                  break;
-              case "r":
-                  resetDefaults();
-                  refreshGeometryBuffers();
-                  break;
-              }}
-
-    else if (animPath == 3) {  
+        case "-": // Decrease letter spacing
+          letterSpacing -= 0.05;
+          letterSpacing = Math.max(letterSpacing, 0.05); // clamp min
+          refreshGeometryBuffers();
+          break;
+        case "r":
+          resetDefaults();
+          refreshGeometryBuffers();
+          break;
+      }
+    } else if (animPath == 3) {
       // Playground mode - no animation sequences
       const key = event.key.toLowerCase();
-      switch(key){
-
+      switch (key) {
         case "arrowleft":
           theta[1] -= 5; // rotate Y left
           break;
@@ -504,9 +466,8 @@ window.addEventListener("keydown", (event) => {
           refreshGeometryBuffers();
           break;
       }
-        }
-      });
-
+    }
+  });
 
   document.getElementById("depthSlider").addEventListener("input", (e) => {
     extrusionDepth = parseFloat(e.target.value);
@@ -566,21 +527,21 @@ window.addEventListener("keydown", (event) => {
     refreshGeometryBuffers();
   });
 
-const animPathSelect = document.getElementById("animPath");
-const defaultKeys = document.getElementById("defaultKeys");
-const playgroundKeys = document.getElementById("playgroundKeys");
+  const animPathSelect = document.getElementById("animPath");
+  const defaultKeys = document.getElementById("defaultKeys");
+  const playgroundKeys = document.getElementById("playgroundKeys");
 
-animPathSelect.addEventListener("change", () => {
+  animPathSelect.addEventListener("change", () => {
     animPath = parseInt(animPathSelect.value, 10);
 
     if (animPath === 3) {
-        defaultKeys.style.display = "none";
-        playgroundKeys.style.display = "block";
+      defaultKeys.style.display = "none";
+      playgroundKeys.style.display = "block";
     } else {
-        playgroundKeys.style.display = "none";
-        defaultKeys.style.display = "block";
+      playgroundKeys.style.display = "none";
+      defaultKeys.style.display = "block";
     }
-});
+  });
 
   document.getElementById("colorMode").addEventListener("change", (e) => {
     const prevMode = colorMode;
@@ -608,32 +569,22 @@ animPathSelect.addEventListener("change", () => {
         } catch (err) {}
       } else {
         try {
-          colorT = hexToColor(
-            document.getElementById("colorPickerT").value
-          );
-          colorE = hexToColor(
-            document.getElementById("colorPickerE").value
-          );
-          colorC = hexToColor(
-            document.getElementById("colorPickerC").value
-          );
-          colorH = hexToColor(
-            document.getElementById("colorPickerH").value
-          );
+          colorT = hexToColor(document.getElementById("colorPickerT").value);
+          colorE = hexToColor(document.getElementById("colorPickerE").value);
+          colorC = hexToColor(document.getElementById("colorPickerC").value);
+          colorH = hexToColor(document.getElementById("colorPickerH").value);
         } catch (err) {}
       }
     }
     refreshGeometryBuffers();
   });
 
-  document
-    .getElementById("singleColorPicker")
-    .addEventListener("input", () => {
-      if (colorMode === "single") {
-        applySingleColor();
-        refreshGeometryBuffers();
-      }
-    });
+  document.getElementById("singleColorPicker").addEventListener("input", () => {
+    if (colorMode === "single") {
+      applySingleColor();
+      refreshGeometryBuffers();
+    }
+  });
 
   function applySingleColor() {
     const hex = document.getElementById("singleColorPicker").value;
@@ -673,16 +624,19 @@ animPathSelect.addEventListener("change", () => {
     ];
 
     const toHex = (v) =>
-    Math.round(v * 255).toString(16).padStart(2, "0");
-  const rgbToHex = (col) => `#${toHex(col[0])}${toHex(col[1])}${toHex(col[2])}`;
+      Math.round(v * 255)
+        .toString(16)
+        .padStart(2, "0");
+    const rgbToHex = (col) =>
+      `#${toHex(col[0])}${toHex(col[1])}${toHex(col[2])}`;
 
-  pickers.forEach((picker, i) => {
-    if (picker && colors[i]) {
-      picker.value = rgbToHex(colors[i]);
-      picker.dispatchEvent(new Event("input"));
-    }
-  });
-}
+    pickers.forEach((picker, i) => {
+      if (picker && colors[i]) {
+        picker.value = rgbToHex(colors[i]);
+        picker.dispatchEvent(new Event("input"));
+      }
+    });
+  }
 
   function hexToColor(hex) {
     return [
@@ -745,6 +699,58 @@ animPathSelect.addEventListener("change", () => {
     animSeq = 1;
   });
 }
+
+function configWebGL() {
+  gl = WebGLUtils.setupWebGL(canvas);
+
+  if (!gl) {
+    alert("WebGL isn't available");
+    return;
+  }
+
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.clearColor(bgColor[0], bgColor[1], bgColor[2], bgColor[3]);
+  gl.enable(gl.DEPTH_TEST);
+
+  buildTECH();
+
+  const program = initShaders(gl, "vertex-shader", "fragment-shader");
+  gl.useProgram(program);
+
+  // VERTEX BUFFER
+  vBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, flatten(points), gl.STATIC_DRAW);
+
+  const vPos = gl.getAttribLocation(program, "vPosition");
+  gl.vertexAttribPointer(vPos, 4, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(vPos);
+
+  // COLOR BUFFER
+  cBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, flatten(colors), gl.STATIC_DRAW);
+
+  const vCol = gl.getAttribLocation(program, "vColor");
+  gl.vertexAttribPointer(vCol, 4, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(vCol);
+
+  // MATRICES
+  modelViewMatrixLoc = gl.getUniformLocation(program, "modelViewMatrix");
+  projectionMatrixLoc = gl.getUniformLocation(program, "projectionMatrix");
+}
+
+function refreshGeometryBuffers() {
+  buildTECH();
+  gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, flatten(points), gl.STATIC_DRAW);
+  gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, flatten(colors), gl.STATIC_DRAW);
+}
+
+function randomColor() {
+  return [Math.random(), Math.random(), Math.random(), 1.0];
+}  
 
 function resetDefaults() {
   isAnimating = false;
