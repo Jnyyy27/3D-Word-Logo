@@ -61,6 +61,13 @@ const defaultColorH = colorH.slice();
 // Remember the default single-color picker hex so Reset can restore it
 let defaultSingleColorHex = null;
 
+const rainbowColors = [
+      [1.0, 0.0, 0.0, 1.0], // Red
+      [1.0, 0.5, 0.0, 1.0], // Orange
+      [1.0, 1.0, 0.0, 1.0], // Yellow
+      [0.0, 1.0, 0.0, 1.0], // Green
+    ];
+
 // Word geometry helpers
 const TECH_HEIGHT = 1.0; // "height = 1.0" in buildTECH()
 
@@ -767,10 +774,10 @@ function resetDefaults() {
   document.getElementById("spacingSlider").value = defaultSpacing;
 
   if (colorMode === "rainbow") {
-        colorT = rainbowColors.slice();
-        colorE = rainbowColors.slice();
-        colorC = rainbowColors.slice();
-        colorH = rainbowColors.slice();
+        colorT = [...rainbowColors[0]];
+        colorE = [...rainbowColors[1]];
+        colorC = [...rainbowColors[2]];
+        colorH = [...rainbowColors[3]];
   }else{ // Restore per-letter colors to defaults and update pickers (do not change color mode)
         colorT = defaultColorT.slice();
         colorE = defaultColorE.slice();
