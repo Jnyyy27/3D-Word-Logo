@@ -556,6 +556,7 @@ function getUIElement() {
           extrusionDepth = Math.min(extrusionDepth + 0.05, 1);
           depthSlider.value = extrusionDepth;
           break;
+          
         case "arrowleft":
           extrusionDepth = Math.max(extrusionDepth - 0.05, 0.1);
           depthSlider.value = extrusionDepth;
@@ -617,6 +618,7 @@ function getUIElement() {
           letterSpacing = Math.max(letterSpacing, 0.05); // clamp min
           refreshGeometryBuffers();
           break;
+
         case "r":
           resetDefaults();
           refreshGeometryBuffers();
@@ -628,35 +630,35 @@ function getUIElement() {
       const key = event.key.toLowerCase();
       switch (key) {
         case "arrowleft":
-          theta[1] -= 5; // rotate Y left
+          theta[1] -= 5; // rotate left
           break;
 
         case "arrowright":
-          theta[1] += 5; // rotate Y right
+          theta[1] += 5; // rotate right
           break;
 
         case "arrowup":
-          theta[0] -= 5; // rotate X up
+          theta[0] -= 5; // rotate up
           break;
 
         case "arrowdown":
-          theta[0] += 5; // rotate X down
+          theta[0] += 5; // rotate down
           break;
 
         case "a":
-          translationOffset[0] -= 0.1;
+          translationOffset[0] -= 0.1; //move left
           break;
 
         case "d":
-          translationOffset[0] += 0.1;
+          translationOffset[0] += 0.1; //move right
           break;
 
         case "w":
-          translationOffset[1] += 0.1;
+          translationOffset[1] += 0.1; //move up
           break;
 
         case "s":
-          translationOffset[1] -= 0.1;
+          translationOffset[1] -= 0.1; //move down
           break;
 
         case "+":
@@ -667,7 +669,7 @@ function getUIElement() {
           scaleValue *= 0.95; // zoom out
           break;
 
-        case "r":
+        case "r":   // reset
           resetDefaults();
           refreshGeometryBuffers();
           break;
@@ -867,7 +869,12 @@ function aniUpdate() {
   // ==========================================
   if (animPath === 1) {
     switch (animSeq) {
-      // 1–4: rotation around Y axis
+      // Case 1–4: rotation around Y axis
+      // theta[x, y, z] = [0, 0, 0] initial
+      // theta[x, y, z] = [0, 180, 0] after case 1
+      // theta[x, y, z] = [0, 0, 0] after case 2
+      // theta[x, y, z] = [0, -180, 0] after case 3
+      // theta[x, y, z] = [0, 0, 0] after case 4
       case 1:
         theta[1] += animationSpeed;
         if (theta[1] >= 180) {
