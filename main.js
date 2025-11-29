@@ -597,7 +597,7 @@ function getUIElement() {
           } catch {}
           break;
 
-        case " ": // spacebar → start/stop
+        case " ": // spacebar → start
           isAnimating = !isAnimating;
           if (startBtn)
             startBtn.innerText = isAnimating
